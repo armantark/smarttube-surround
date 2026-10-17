@@ -11,4 +11,4 @@
 - [x] The prototype README states the question, the verdict per path, and what waits for the owner's ears
 - [x] The owner has listened and confirmed which path plays voices from the rear speakers (2026-10-17: the TV's AAC encoder path, in SmartTube Surround)
 
-TV-side verdict (2026-10-17): AC3 5.1, AAC-LC 5.1 in ADTS, and 6-channel PCM through the TV's AAC encoder all opened a compressed 5.1 output on HDMI ARC and played to the end; raw AAC access units played nothing. Listening commands are in `~/tv-setup/memory-bank/prototypes/surround-probe/README.md`.
+TV-side verdict (2026-10-17): AC3 5.1, AAC-LC 5.1 in ADTS, and 6-channel PCM through the TV's AAC encoder all opened a compressed 5.1 output on HDMI ARC and played to the end; raw AAC access units played nothing. The measured paths are recorded in `memory-bank/research/2026-10-17-tv-audio-paths.md`; `scripts/check-surround.sh` checks the patched player on the TV.

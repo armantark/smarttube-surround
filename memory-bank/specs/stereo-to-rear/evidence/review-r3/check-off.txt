@@ -1,0 +1,8 @@
+[16:16:58] muting the soundbar
+[16:16:59] opening https://www.youtube.com/watch?v=iG9CE55wbtY
+[16:17:10] stereo to rear speakers is on
+[16:17:10] flipping the setting in the player's playback settings
+[16:17:25] outputs with an active track of the app (attempt 1): type, HAL format, mask, devices, track format, track mask
+MIXER 0x1 0x00000003 (AUDIO_DEVICE_OUT_HDMI_ARC) 00000001 00000003
+[16:17:31] compressed outputs after the player closed: 0 open, 0 active
+[16:17:31] PASS (off); the soundbar stays muted; evidence: /Users/ArmanTarkhanian1/.treehouse/smarttube-surround-71d7b5/1/smarttube-surround/memory-bank/specs/stereo-to-rear/evidence/review-r3/check-off

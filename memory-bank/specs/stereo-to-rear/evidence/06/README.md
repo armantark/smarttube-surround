@@ -42,9 +42,9 @@ Screens passed, in order (paths are relative to this evidence directory):
 | Original Dark Grey setting restored | [screens/40-restored-color-selection.png](screens/40-restored-color-selection.png) |
 | Final idle screen after the app restarted | [screens/42-final-idle.png](screens/42-final-idle.png) |
 
-`scripts/tv-update-screen.sh <screenshot.png> [KEYCODE_... ...]` captures updater steps with
-the owner's existing `~/tv-setup/tv-shot.sh`. It sends one key per adb call with a pause.
-Its Bash syntax check passed. Codex used it to capture the settings and final screens.
+A manual updater helper captured the settings and final screens in this record, with one
+remote key per adb call and a pause. The helper is no longer part of the repository.
+`scripts/check-surround.sh` performs the audio check without an external repository.
 
 ## Sony permission failure and recovery
 

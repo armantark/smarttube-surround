@@ -1,0 +1,13 @@
+10-17 16:19:15.770 15953 15953 W ExoPlayerController: [DEBUG-r3] state=STATE_READY, playing=true, positionMs=0, durationMs=12000
+10-17 16:19:16.585 15953 15987 I StereoToRear: [DEBUG-r3] applyPlaybackParameters skipSilence=true
+10-17 16:19:18.653 15953 15987 I StereoToRear: [DEBUG-r3] processors drained: skippedFrames=430595
+10-17 16:19:18.656 15953 15987 I StereoToRear: [DEBUG-r3] encoder EOS queued
+10-17 16:19:18.661 15953 15987 I StereoToRear: [DEBUG-r3] encoder EOS received and track draining
+10-17 16:19:19.394 15953 15953 W ExoPlayerController: [DEBUG-r3] state=STATE_ENDED, playing=true, positionMs=12004, durationMs=12000
+10-17 16:19:19.596 15953 15953 W ExoPlayerController: [DEBUG-r3] state=STATE_IDLE, playing=true, positionMs=0, durationMs=-1
+10-17 16:19:20.271 15953 15953 W ExoPlayerController: [DEBUG-r3] openMediaSource requested=com.google.android.exoplayer2.source.dash.DashMediaSource@1bd771d, fixture=true
+10-17 16:19:20.274 15953 15953 W ExoPlayerController: [DEBUG-r3] state=STATE_BUFFERING, playing=true, positionMs=0, durationMs=-1
+10-17 16:19:20.398 15953 15987 I MediaCodecRenderer: onInputFormatChanged: format = Format(2, null, null, audio/mp4a-latm, null, -1, und, [-1, -1, -1.0], [2, 48000])
+10-17 16:19:20.430 15953 15987 I StereoToRear: AAC-LC 5.1 at 48000 Hz with the rear pair copying the front
+10-17 16:19:20.471 15953 15987 I StereoToRear: [DEBUG-r3] applyPlaybackParameters skipSilence=true
+10-17 16:19:20.526 15953 15953 W ExoPlayerController: [DEBUG-r3] state=STATE_READY, playing=true, positionMs=0, durationMs=12000

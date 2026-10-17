@@ -1,0 +1,1 @@
+package: name='io.github.armantark.smarttubesurround' versionCode='244603' versionName='32.56-surround' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'

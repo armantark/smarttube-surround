@@ -1,0 +1,4 @@
+SmartTube_Surround_arm64-v8a.apk: signed with the project certificate
+SmartTube_Surround_armeabi-v7a.apk: signed with the project certificate
+SmartTube_Surround_universal.apk: signed with the project certificate
+SmartTube_Surround_x86.apk: signed with the project certificate

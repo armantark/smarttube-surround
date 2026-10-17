@@ -1,0 +1,5 @@
+1:applying 0001-Give-the-beta-flavor-its-own-identity-so-it-installs.patch
+6:applying 0002-Read-updates-from-SmartTube-Surround-s-own-releases.patch
+8:applying 0003-Let-the-owner-switch-stereo-to-rear-off-and-on.patch
+13:applying 0004-Play-stereo-from-the-rear-speakers-as-well-as-the-fr.patch
+1749:BUILD SUCCESSFUL in 1m

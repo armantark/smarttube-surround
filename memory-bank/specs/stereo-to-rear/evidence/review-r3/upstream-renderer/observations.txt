@@ -1,0 +1,8 @@
+10-17 16:18:56.451 15695 15695 I CustomOverridesRenderersFactory: [DEBUG-r3] upstream renderer, stereoToRear=true
+10-17 16:19:00.186 15695 15695 W ExoPlayerController: [DEBUG-r3] openMediaSource requested=com.google.android.exoplayer2.source.dash.DashMediaSource@fa09e58, fixture=true
+10-17 16:19:00.190 15695 15695 W ExoPlayerController: [DEBUG-r3] state=STATE_BUFFERING, playing=false, positionMs=0, durationMs=-1
+10-17 16:19:00.258 15695 15695 W ExoPlayerController: [DEBUG-r3] state=STATE_BUFFERING, playing=true, positionMs=0, durationMs=12000
+10-17 16:19:00.371 15695 15727 I MediaCodecRenderer: onInputFormatChanged: format = Format(2, null, null, audio/mp4a-latm, null, -1, und, [-1, -1, -1.0], [6, 48000])
+10-17 16:19:00.405 15695 15727 I StereoToRear: Default path for 6 channels, encoding 2, API 31
+10-17 16:19:00.456 15695 15695 W ExoPlayerController: [DEBUG-r3] state=STATE_READY, playing=true, positionMs=0, durationMs=12000
+10-17 16:19:01.633 15695 15695 W ExoPlayerController: [DEBUG-r3] state=STATE_BUFFERING, playing=true, positionMs=12000, durationMs=12000

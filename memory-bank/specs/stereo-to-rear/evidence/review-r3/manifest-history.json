@@ -1,0 +1,14 @@
+{
+  "32.56-surround": {
+    "versionCode": 244602,
+    "changelog": [
+      "Upstream SmartTube 32.56 with patch revision 2"
+    ]
+  },
+  "32.56-surround-r3": {
+    "versionCode": 244603,
+    "changelog": [
+      "Upstream SmartTube 32.56 with patch revision 3"
+    ]
+  }
+}

@@ -1,0 +1,109 @@
+    - name: non_hw_av_sync_compressed
+    - Profiles:
+        Profile 0:
+            - format: AUDIO_FORMAT_AC3
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 1:
+            - format: AUDIO_FORMAT_E_AC3
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 2:
+            - format: AUDIO_FORMAT_E_AC3_JOC
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 3:
+            - format: AUDIO_FORMAT_AC4
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 4:
+            - format: AUDIO_FORMAT_DTS
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x013f, 0x063f
+            - encapsulation type: 0
+        Profile 5:
+            - format: AUDIO_FORMAT_DTS_HD
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x013f, 0x063f
+            - encapsulation type: 0
+        Profile 6:
+            - format: AUDIO_FORMAT_AAC
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 7:
+            - format: AUDIO_FORMAT_AAC_LC
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 8:
+            - format: AUDIO_FORMAT_HE_AAC_V1
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 9:
+            - format: AUDIO_FORMAT_HE_AAC_V2
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 10:
+            - format: AUDIO_FORMAT_AAC_HE_V1
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+        Profile 11:
+            - format: AUDIO_FORMAT_AAC_HE_V2
+            - sampling rates:8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000
+            - channel masks:0x0001, 0x0003, 0x0007, 0x000f, 0x0033, 0x0037, 0x003f, 0x0103, 0x0107, 0x063f
+            - encapsulation type: 0
+    - flags: 0x0001 (AUDIO_OUTPUT_FLAG_DIRECT)
+    - Supported devices:
+      Device 1:
+      - id:  2
+      - tag name: speaker
+      - type: AUDIO_DEVICE_OUT_SPEAKER                        
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 2:
+      - tag name: headphone
+      - type: AUDIO_DEVICE_OUT_WIRED_HEADPHONE                
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 3:
+      - tag name: BT A2DP Out
+      - type: AUDIO_DEVICE_OUT_BLUETOOTH_A2DP                 
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 4:
+      - tag name: BT A2DP Headphones
+      - type: AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES      
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 5:
+      - tag name: BT A2DP Speaker
+      - type: AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER         
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 6:
+      - id: 295
+      - tag name: hdmi
+      - type: AUDIO_DEVICE_OUT_HDMI_ARC                       
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 7:
+      - tag name: spdif
+      - type: AUDIO_DEVICE_OUT_SPDIF                          
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+      Device 8:
+      - tag name: aux_out
+      - type: AUDIO_DEVICE_OUT_AUX_LINE                       
+      - supported encapsulation modes: 0
+      - supported encapsulation metadata types: 0
+
+    - maxOpenCount: 2 - curOpenCount: 0
+    - maxActiveCount: 2 - curActiveCount: 0
