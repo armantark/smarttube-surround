@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (A patched build installs beside SmartTube on the TV)
 
-**Status:** open
+**Status:** claimed by implementer-04
 
 - [ ] The repository is public and carries SmartTube's MIT notice and ExoPlayer's Apache 2.0 notice
 - [ ] The keystore and its passwords are Actions secrets, set from the files on the Mac, never printed in a log

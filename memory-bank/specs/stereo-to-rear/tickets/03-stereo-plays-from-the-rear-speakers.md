@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Prove which 5.1 path reaches the rear speakers), 02 (A patched build installs beside SmartTube on the TV)
 
-**Status:** open
+**Status:** claimed by implementer-03
 
 - [ ] A script plays a known stereo video in the patched build with the soundbar muted, and passes only when audio_flinger shows a compressed 5.1 direct output during playback
 - [ ] With the setting off, the same script shows the normal stereo PCM output
