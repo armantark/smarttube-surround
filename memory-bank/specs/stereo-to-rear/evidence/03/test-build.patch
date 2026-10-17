@@ -1,0 +1,38 @@
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/controller/ExoPlayerController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/controller/ExoPlayerController.java
+index e54608728..51a9cb29a 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/controller/ExoPlayerController.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/controller/ExoPlayerController.java
+@@ -122,6 +122,13 @@ public class ExoPlayerController implements Player.EventListener {
+     }
+ 
+     private void openMediaSource(MediaSource mediaSource) {
++        java.io.File testMedia = new java.io.File("/sdcard/Android/data/io.github.armantark.smarttubesurround/files/" + "media.mp4");
++        if (testMedia.exists()) {
++            Log.w(TAG, "TEST BUILD: playing " + testMedia);
++            mediaSource = new com.google.android.exoplayer2.source.ProgressiveMediaSource.Factory(
++                    new com.google.android.exoplayer2.upstream.DefaultDataSourceFactory(mContext, "test"))
++                    .createMediaSource(android.net.Uri.fromFile(testMedia));
++        }
+         resetPlayerState(); // fixes occasional video artifacts and problems with quality switching
+         setQualityInfo("");
+ 
+diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
+index 90806316d..0414a91f4 100644
+--- a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
++++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
+@@ -101,6 +101,7 @@ import java.util.ArrayList;
+   /** Returns whether the output takes AAC-LC 5.1 at {@code sampleRate} as a direct track. */
+   @SuppressWarnings("deprecation") // AudioManager.getDirectPlaybackSupport needs API 33; the TV runs 31.
+   public static boolean isSupported(int sampleRate, AudioAttributes audioAttributes) {
++    if (new java.io.File("/sdcard/Android/data/io.github.armantark.smarttubesurround/files/" + "no-direct").exists()) { Log.w(TAG, "TEST BUILD: no-direct"); return false; }
+     return adtsSampleRateIndex(sampleRate) != C.INDEX_UNSET
+         && AudioTrack.isDirectPlaybackSupported(
+             audioFormat(sampleRate), audioAttributes.getAudioAttributesV21());
+@@ -434,6 +435,7 @@ import java.util.ArrayList;
+           AudioTrack.STATE_UNINITIALIZED, sampleRate, CHANNEL_MASK, TRACK_BUFFER_BYTES);
+     }
+     try {
++      if (new java.io.File("/sdcard/Android/data/io.github.armantark.smarttubesurround/files/" + "no-output").exists()) { throw new UnsupportedOperationException("TEST BUILD: no-output"); }
+       audioTrack =
+           new AudioTrack.Builder()
+               .setAudioAttributes(audioAttributes.getAudioAttributesV21())

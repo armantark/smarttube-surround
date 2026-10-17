@@ -1,0 +1,22 @@
+# stereo-44100-setting-on, 2026-10-17 14:43:27 PDT
+## log lines
+10-17 14:43:20.234 31499 31499 W ExoPlayerController: TEST BUILD: playing /sdcard/Android/data/io.github.armantark.smarttubesurround/files/media.mp4
+10-17 14:43:20.438 31499 31528 I MediaCodecRenderer: onInputFormatChanged: format = Format(2, null, null, audio/mp4a-latm, null, -1, und, [-1, -1, -1.0], [2, 44100])
+10-17 14:43:20.477 31499 31528 I StereoToRear: AAC-LC 5.1 at 44100 Hz with the rear pair copying the front
+10-17 14:43:25.389 31499 31499 W ExoPlayerController: TEST BUILD: playing /sdcard/Android/data/io.github.armantark.smarttubesurround/files/media.mp4
+10-17 14:43:25.524 31499 31528 I MediaCodecRenderer: onInputFormatChanged: format = Format(2, null, null, audio/mp4a-latm, null, -1, und, [-1, -1, -1.0], [2, 44100])
+10-17 14:43:25.564 31499 31528 I StereoToRear: AAC-LC 5.1 at 44100 Hz with the rear pair copying the front
+## audio_flinger sample 1: output threads with a track of pid 31499
+Output thread 0xef74c1c0, name AudioOut_215, tid 31725, type 1 (DIRECT):
+  HAL format: 0x4000002 (AUDIO_FORMAT_AAC_LC)
+  Channel mask: 0x0000003f (front-left, front-right, front-center, low-frequency, back-left, back-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed
+            169    yes  31499     881     255 A  0x000 04000002 0000003F  44100  3   1  3     0     0     0     0  0000A500  32768   29888 A         0        0
+## audio_flinger sample 2: output threads with a track of pid 31499
+Output thread 0xef74c1c0, name AudioOut_215, tid 31725, type 1 (DIRECT):
+  HAL format: 0x4000002 (AUDIO_FORMAT_AAC_LC)
+  Channel mask: 0x0000003f (front-left, front-right, front-center, low-frequency, back-left, back-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed
+            169    yes  31499     881     255 A  0x000 04000002 0000003F  44100  3   1  3     0     0     0     0  0002C100  32768   32768 A         0        0

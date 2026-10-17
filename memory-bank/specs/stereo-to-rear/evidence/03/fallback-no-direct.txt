@@ -1,0 +1,31 @@
+# fallback-no-direct, 2026-10-17 14:29:04 PDT
+## log lines
+10-17 14:28:57.271 27134 27168 I MediaCodecRenderer: onInputFormatChanged: format = Format(251, null, null, audio/opus, opus, 157877, en, [-1, -1, -1.0], [2, 48000])
+10-17 14:28:57.333 27134 27168 W StereoToRear: TEST BUILD: no-direct
+10-17 14:28:57.333 27134 27168 I StereoToRear: Stereo at 48000 Hz: no direct playback support for AAC-LC 5.1
+## audio_flinger sample 1: output threads with a track of pid 27134
+Output thread 0xf3545ea0, name AudioOut_D, tid 3502, type 0 (MIXER):
+  HAL format: 0x1 (AUDIO_FORMAT_PCM_16_BIT)
+  Channel mask: 0x00000003 (front-left, front-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed   Latency
+            127    yes  27134     641     181 A  0x000 00000001 00000003  48000  3   1  3    -6    -6    -6     0  00030480  19240   19240 A         0        0  483.36 t
+Output thread 0xf3545ea0, name AudioOut_D, tid 3502, type 0 (MIXER):
+  HAL format: 0x1 (AUDIO_FORMAT_PCM_16_BIT)
+  Channel mask: 0x00000003 (front-left, front-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed   Latency
+   10-17 14:28:58.283 AT::add       (0xf02468c0)         127     no  27134     641     181 A  0x000 00000001 00000003  48000  3   1  3  -inf    -6    -6     0  00000000  19240       0 f         0        0       new
+## audio_flinger sample 2: output threads with a track of pid 27134
+Output thread 0xf3545ea0, name AudioOut_D, tid 3502, type 0 (MIXER):
+  HAL format: 0x1 (AUDIO_FORMAT_PCM_16_BIT)
+  Channel mask: 0x00000003 (front-left, front-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed   Latency
+            127    yes  27134     641     181 A  0x000 00000001 00000003  48000  3   1  3    -6    -6    -6     0  00054600  19240   19240 A         0        0  473.79 t
+Output thread 0xf3545ea0, name AudioOut_D, tid 3502, type 0 (MIXER):
+  HAL format: 0x1 (AUDIO_FORMAT_PCM_16_BIT)
+  Channel mask: 0x00000003 (front-left, front-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed   Latency
+   10-17 14:28:58.283 AT::add       (0xf02468c0)         127     no  27134     641     181 A  0x000 00000001 00000003  48000  3   1  3  -inf    -6    -6     0  00000000  19240       0 f         0        0       new

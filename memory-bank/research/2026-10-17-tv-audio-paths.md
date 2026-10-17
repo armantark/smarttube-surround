@@ -34,3 +34,24 @@ Does the soundbar play a 5.1 AAC-LC stream sent by an app through the TV, with s
 rear channels? If yes, the patch can use the TV's own AAC encoder; if no, it must bundle an
 AC3 encoder (for example FFmpeg's) and send AC3. Test with two files whose rear channels
 carry a distinct tone: 5.1 AAC-LC and 5.1 AC3.
+
+## Measured while building the patch (ticket 03)
+
+- `c2.android.aac.encoder` puts 2048 frames of priming ahead of the input: decoding the
+  prototype's `encoded-c.aac` gave the first loud sample at frame 6390, against 4342 in
+  `channels-5.1.wav`. The AAC track's playback position counts those frames.
+- At the end of a stream the encoder takes the end-of-stream flag only in a free input buffer, and
+  it frees none while its encoded output waits to be dequeued; a sink that waits for the input
+  buffer before writing the output stalls one second before the end of every video.
+- A playing AAC track whose app is killed (`am force-stop`, three runs) closes its compressed
+  output within 5 s. Only a track ended with `stop()` held its output open.
+- The direct AAC track's playback head trails the written stream by about 1.5 s (the HAL's buffer
+  plus a 32 KiB track buffer); `AudioTrack.getTimestamp` works on it.
+- AAC-LC 5.1 at 44.1 kHz opens the same direct output as 48 kHz.
+- SmartTube 32.56 plays Opus 48 kHz stereo (itag 251) by default on this TV, and YouTube sends it no
+  5.1 track at all ([SmartTube #6335](https://github.com/yuliskov/SmartTube/issues/6335)). Its auto
+  volume sets the player volume per video (0.5 on a TED talk), which a passthrough track ignores.
+- The TV's mute key mutes `STREAM_MUSIC` on the TV, yet test playback was still audible
+  through the soundbar. Only the soundbar's own mute, set and read back through its Audio Control
+  API (`setAudioMute`, `getVolumeInformation`), keeps tests silent.
+

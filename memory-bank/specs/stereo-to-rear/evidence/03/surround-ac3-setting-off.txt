@@ -1,0 +1,20 @@
+# surround-ac3-setting-off, 2026-10-17 14:31:14 PDT
+## log lines
+10-17 14:31:07.870 27134 27134 W ExoPlayerController: TEST BUILD: playing /sdcard/Android/data/io.github.armantark.smarttubesurround/files/media.mp4
+10-17 14:31:08.028 27134 28079 I MediaCodecRenderer: onInputFormatChanged: format = Format(2, null, null, audio/ac3, null, -1, und, [-1, -1, -1.0], [6, 48000])
+10-17 14:31:11.752 27134 27134 W ExoPlayerController: TEST BUILD: playing /sdcard/Android/data/io.github.armantark.smarttubesurround/files/media.mp4
+10-17 14:31:11.877 27134 28079 I MediaCodecRenderer: onInputFormatChanged: format = Format(2, null, null, audio/ac3, null, -1, und, [-1, -1, -1.0], [6, 48000])
+## audio_flinger sample 1: output threads with a track of pid 27134
+Output thread 0xef748130, name AudioOut_1BD, tid 28121, type 1 (DIRECT):
+  HAL format: 0x9000000 (AUDIO_FORMAT_AC3)
+  Channel mask: 0x0000003f (front-left, front-right, front-center, low-frequency, back-left, back-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed
+            141    yes  27134     721     205 A  0x000 09000000 0000003F  48000  3   1  3    -6    -6    -6     0  0000B040  40000   38080 A         0        0
+## audio_flinger sample 2: output threads with a track of pid 27134
+Output thread 0xef748130, name AudioOut_1BD, tid 28121, type 1 (DIRECT):
+  HAL format: 0x9000000 (AUDIO_FORMAT_AC3)
+  Channel mask: 0x0000003f (front-left, front-right, front-center, low-frequency, back-left, back-right)
+  Output devices: 0x40000 (AUDIO_DEVICE_OUT_HDMI_ARC)
+    Type     Id Active Client Session Port Id S  Flags   Format Chn mask  SRate ST Usg CT  G db  L dB  R dB  VS dB   Server FrmCnt  FrmRdy F Underruns  Flushed
+            141    yes  27134     721     205 A  0x000 09000000 0000003F  48000  3   1  3    -6    -6    -6     0  00034F80  40000   39040 A         0        0
