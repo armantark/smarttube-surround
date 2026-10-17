@@ -4,12 +4,12 @@
 
 **Blocked by:** 04 (GitHub builds and publishes a patched build on dispatch)
 
-**Status:** built; the published-release message is checked on the next real release
+**Status:** done
 
 - [x] NTFY_TOPIC is an Actions secret, set from ~/.config/mbp-power-watch/ntfy-topic without printing it
 - [x] The scheduled path with no new upstream release ends quietly with no release and no message (proved by no-tag dispatch; a cron-triggered run has not been observed)
 - [x] A dispatch with a deliberately broken patch fails at the apply step, and the ntfy poll API shows the alert with the step name and run link
-- [ ] A successful publish shows the low-priority message in the ntfy poll API (check on the next real release; no test release was created)
+- [x] A successful publish shows the low-priority message in the ntfy poll API (32.56-r2, run 39072841251, priority 2) (check on the next real release; no test release was created)
 
 Verification (2026-10-17):
 
