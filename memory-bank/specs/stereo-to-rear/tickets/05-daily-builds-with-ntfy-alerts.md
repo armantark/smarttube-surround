@@ -6,7 +6,11 @@
 
 **Status:** claimed by implementer-05 (GPT-6.1 Sol)
 
-- [ ] NTFY_TOPIC is an Actions secret, set from ~/.config/mbp-power-watch/ntfy-topic without printing it
+- [x] NTFY_TOPIC is an Actions secret, set from ~/.config/mbp-power-watch/ntfy-topic without printing it
 - [ ] A scheduled run with no new upstream release ends quietly with no release and no message
 - [ ] A dispatch with a deliberately broken patch fails at the apply step, and the ntfy poll API shows the alert with the step name and run link
 - [ ] A successful publish shows the low-priority message in the ntfy poll API
+
+Verification (2026-10-17):
+
+- No-tag dispatch: https://github.com/armantark/smarttube-surround/actions/runs/39068333347 succeeded at "Skip existing release" with `32.56-r1 already exists; nothing to build.` All build, publish, and notification steps were skipped. Release IDs and tags were unchanged, and the ntfy poll returned no messages before or after the run. This checks the scheduled path by dispatch; a cron-triggered run has not been observed.

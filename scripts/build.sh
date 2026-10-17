@@ -25,22 +25,23 @@ build_dir=${BUILD_DIR:-$HOME/.cache/smarttube-surround/upstream}
 keystore_file=${KEYSTORE_FILE:-$config_dir/release.jks}
 
 if [[ $phase != --build-only ]]; then
-  if [[ ! -d $build_dir/.git ]]; then
-    git init --quiet "$build_dir"
-    git -C "$build_dir" remote add origin https://github.com/yuliskov/SmartTube
-  fi
-  cd "$build_dir"
-  "$repo_dir/scripts/retry.sh" git fetch --quiet --force --tags origin
-  git checkout --quiet --force --detach "refs/tags/$tag"
-  git clean --quiet -ffdx
-  "$repo_dir/scripts/retry.sh" git submodule update --quiet --init --recursive --force
-  git submodule foreach --quiet --recursive git clean --quiet -ffdx
+  (
+    if [[ ! -d $build_dir/.git ]]; then
+      git init --quiet "$build_dir"
+      git -C "$build_dir" remote add origin https://github.com/yuliskov/SmartTube
+    fi
+    cd "$build_dir"
+    "$repo_dir/scripts/retry.sh" git fetch --quiet --force --tags origin
+    git checkout --quiet --force --detach "refs/tags/$tag"
+    git clean --quiet -ffdx
+    "$repo_dir/scripts/retry.sh" git submodule update --quiet --init --recursive --force
+    git submodule foreach --quiet --recursive git clean --quiet -ffdx
 
-  for patch in "$repo_dir"/patches/*.patch; do
-    echo "applying $(basename "$patch")"
-    git apply --3way "$patch"
-  done
-
+    for patch in "$repo_dir"/patches/*.patch; do
+      echo "applying $(basename "$patch")"
+      git apply --3way "$patch"
+    done
+  )
 fi
 [[ $phase != --prepare-only ]] || exit 0
 

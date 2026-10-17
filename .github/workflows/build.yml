@@ -57,7 +57,7 @@ jobs:
         run: |
           # A failed API call must fail the job, never masquerade as a missing release.
           existing=$(scripts/retry.sh gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
-            --jq ".[] | select(.tag_name == \"$RELEASE\") | .tag_name")
+            --jq ".[] | select(.tag_name == \"$RELEASE\" and (.draft | not)) | .tag_name")
           if [[ -n $existing ]]; then
             echo "needed=false" >> "$GITHUB_OUTPUT"
             echo "$RELEASE already exists; nothing to build."
@@ -113,10 +113,8 @@ jobs:
           UPSTREAM_TAG: ${{ steps.Find_the_upstream_tag.outputs.tag }}
           RELEASE: ${{ steps.Find_the_upstream_tag.outputs.release }}
         run: |
-          url=$(scripts/retry.sh gh release create "$RELEASE" dist/* \
-            --title "$RELEASE" \
-            --notes "SmartTube $UPSTREAM_TAG with patch revision $(<patch-revision)." \
-            --latest)
+          url=$(scripts/retry.sh scripts/publish-release.sh "$RELEASE" dist \
+            "SmartTube $UPSTREAM_TAG with patch revision $(<patch-revision).")
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Notify publication
