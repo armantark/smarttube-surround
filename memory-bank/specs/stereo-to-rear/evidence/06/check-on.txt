@@ -1,0 +1,8 @@
+[16:02:57] opening https://www.youtube.com/watch?v=iG9CE55wbtY
+[16:03:02] stereo to rear speakers is off
+[16:03:02] flipping the setting in the player's playback settings
+10-17 16:03:09.120 12004 12824 I StereoToRear: AAC-LC 5.1 at 48000 Hz with the rear pair copying the front
+[16:03:17] outputs with an active track of the app (attempt 1): type, HAL format, mask, devices, track format, track mask
+DIRECT 0x4000002 0x0000003f (AUDIO_DEVICE_OUT_HDMI_ARC) 04000002 0000003F
+[16:03:23] compressed outputs after the player closed: 0 open, 0 active
+[16:03:23] PASS (on); the soundbar stays muted; evidence: /Users/ArmanTarkhanian1/.treehouse/smarttube-surround-71d7b5/1/smarttube-surround/memory-bank/specs/stereo-to-rear/evidence/06/check-on

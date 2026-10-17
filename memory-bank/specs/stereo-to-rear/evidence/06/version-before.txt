@@ -1,0 +1,1 @@
+    versionCode=244601 minSdk=17 targetSdk=34

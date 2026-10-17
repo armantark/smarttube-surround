@@ -1,0 +1,1 @@
+10-17 16:03:09.120 12004 12824 I StereoToRear: AAC-LC 5.1 at 48000 Hz with the rear pair copying the front

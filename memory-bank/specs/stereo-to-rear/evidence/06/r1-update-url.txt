@@ -1,0 +1,3 @@
+        resource 0x7f030004 io.github.armantark.smarttubesurround:array/update_urls: <bag>
+          Parent=0x00000000(Resolved=0x00000000), Count=1
+          #0 (Key=0x01000001): (string8) "https://github.com/armantark/smarttube-surround/releases/latest/download/smarttube_surround.json"
