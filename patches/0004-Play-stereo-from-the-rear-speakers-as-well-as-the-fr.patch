@@ -13,9 +13,9 @@ playback, and outputs that cannot take AAC-LC 5.1 keep upstream's
 audio sink, and so does stereo when the AAC output does not open.
 ---
  .../CustomOverridesRenderersFactory.java      |  11 +-
- .../audio/AacSurroundAudioSink.java           | 790 ++++++++++++++++++
+ .../audio/AacSurroundAudioSink.java           | 792 ++++++++++++++++++
  .../audio/StereoToRearAudioSink.java          | 225 +++++
- 3 files changed, 1024 insertions(+), 2 deletions(-)
+ 3 files changed, 1026 insertions(+), 2 deletions(-)
  create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
  create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
 
@@ -64,10 +64,10 @@ index a921b64cf..a4c426847 100644
          audioRenderer.enableAudioSyncFix(mPlayerTweaksData.isAudioSyncFixEnabled());
 diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
 new file mode 100644
-index 000000000..5550fe6a7
+index 000000000..90806316d
 --- /dev/null
 +++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
-@@ -0,0 +1,790 @@
+@@ -0,0 +1,792 @@
 +package com.google.android.exoplayer2.audio;
 +
 +import android.annotation.TargetApi;
@@ -81,6 +81,7 @@ index 000000000..5550fe6a7
 +import androidx.annotation.Nullable;
 +import com.google.android.exoplayer2.C;
 +import com.google.android.exoplayer2.PlaybackParameters;
++import com.google.android.exoplayer2.audio.DefaultAudioSink.AudioProcessorChain;
 +import com.google.android.exoplayer2.audio.DefaultAudioSink.DefaultAudioProcessorChain;
 +import com.google.android.exoplayer2.util.Assertions;
 +import com.google.android.exoplayer2.util.Log;
@@ -321,6 +322,8 @@ index 000000000..5550fe6a7
 +    if (handledEndOfStream || !isInitialized() || !drainAudioProcessorsToEndOfStream()) {
 +      return;
 +    }
++    // Write first: the encoder frees no input buffer for the end of stream while its output waits.
++    writeEncodedOutput();
 +    if (!encoderInputEnded) {
 +      int index = encoder.dequeueInputBuffer(0);
 +      if (index < 0) {
@@ -330,7 +333,6 @@ index 000000000..5550fe6a7
 +          index, 0, 0, framesToDurationUs(encodedFrames), MediaCodec.BUFFER_FLAG_END_OF_STREAM);
 +      encoderInputEnded = true;
 +    }
-+    writeEncodedOutput();
 +    if (!encoderOutputEnded || pendingAdtsFrame != null) {
 +      return;
 +    }
