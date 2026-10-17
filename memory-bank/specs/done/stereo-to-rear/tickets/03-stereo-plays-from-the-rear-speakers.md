@@ -12,7 +12,7 @@
 - [x] When the output reports no direct playback support for the encoded 5.1 format, playback falls back to normal stereo without silence
 - [x] The owner hears voices from the rear speakers (owner layer; 2026-10-17, and they leave the rear speakers with the setting off)
 
-TV-side verdict (2026-10-17, patches 0003 and 0004 on upstream 32.56), evidence in `memory-bank/specs/stereo-to-rear/evidence/03/`:
+TV-side verdict (2026-10-17, patches 0003 and 0004 on upstream 32.56), evidence in `memory-bank/specs/done/stereo-to-rear/evidence/03/`:
 
 - `scripts/check-surround.sh on` passed: a DIRECT output with HAL format AAC_LC, mask 0x3f, on HDMI ARC, carrying the app's active track (`check-on.txt`). `scripts/check-surround.sh off` passed: the app's 16-bit stereo track on the PCM mixer output (`check-off.txt`). Both closed every compressed output after the player closed.
 - SmartTube 32.56 gets no 5.1 track from YouTube (its Audio formats list only Opus and MP4A, upstream issue [#6335](https://github.com/yuliskov/SmartTube/issues/6335)), so a test build played local 5.1 files instead (`test-build.patch`). With the setting on and off alike, 5.1 AC3 went to the AC3 direct output and 5.1 AAC played as 6-channel PCM on the mixer, the upstream path (`surround-ac3-*.txt`, `surround-aac-*.txt`).

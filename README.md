@@ -3,7 +3,7 @@
 A patched build of [SmartTube](https://github.com/yuliskov/SmartTube) beta that installs beside
 the official SmartTube beta as its own app, "SmartTube Surround", and updates itself from this
 repository's releases. It is built for one Sony TV whose soundbar plays stereo only from the front;
-`memory-bank/specs/stereo-to-rear/spec.md` describes the goal.
+`memory-bank/specs/done/stereo-to-rear/spec.md` describes the goal.
 
 This repository is not a fork. It holds the patch as a series of patch files in `patches/`,
 made against an upstream beta tag, and a script that applies them to a fresh upstream checkout.
