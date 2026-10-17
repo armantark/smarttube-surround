@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** claimed by implementer-02
+**Status:** done
 
-- [ ] The project keystore exists at ~/.config/smarttube-surround/ with mode 600, and its passwords live beside it, never in the repository
-- [ ] One script checks out a given upstream tag with submodules, applies the patch series, and builds the signed beta release APKs
-- [ ] The APK installs on the TV while org.smarttube.beta stays installed, and both apps open
-- [ ] "SmartTube Surround" shows in Projectivy's app list, and a video plays in it
-- [ ] The update URL points at this repository's latest release manifest
+- [x] The project keystore exists at ~/.config/smarttube-surround/ with mode 600, and its passwords live beside it, never in the repository
+- [x] One script checks out a given upstream tag with submodules, applies the patch series, and builds the signed beta release APKs
+- [x] The APK installs on the TV while org.smarttube.beta stays installed, and both apps open
+- [x] "SmartTube Surround" shows in Projectivy's app list, and a video plays in it
+- [x] The update URL points at this repository's latest release manifest
