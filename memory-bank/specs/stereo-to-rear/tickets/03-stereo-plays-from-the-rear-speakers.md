@@ -4,13 +4,13 @@
 
 **Blocked by:** 01 (Prove which 5.1 path reaches the rear speakers), 02 (A patched build installs beside SmartTube on the TV)
 
-**Status:** built; the owner's listening check waits for the owner
+**Status:** done
 
 - [x] A script plays a known stereo video in the patched build with the soundbar muted, and passes only when audio_flinger shows a compressed 5.1 direct output during playback
 - [x] With the setting off, the same script shows the normal stereo PCM output
 - [x] A 5.1 video plays through the upstream path unchanged
 - [x] When the output reports no direct playback support for the encoded 5.1 format, playback falls back to normal stereo without silence
-- [ ] The owner hears voices from the rear speakers (owner layer)
+- [x] The owner hears voices from the rear speakers (owner layer; 2026-10-17, and they leave the rear speakers with the setting off)
 
 TV-side verdict (2026-10-17, patches 0003 and 0004 on upstream 32.56), evidence in `memory-bank/specs/stereo-to-rear/evidence/03/`:
 
