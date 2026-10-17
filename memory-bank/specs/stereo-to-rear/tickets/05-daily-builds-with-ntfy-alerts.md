@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 (GitHub builds and publishes a patched build on dispatch)
 
-**Status:** open
+**Status:** claimed by implementer-05 (GPT-6.1 Sol)
 
 - [ ] NTFY_TOPIC is an Actions secret, set from ~/.config/mbp-power-watch/ntfy-topic without printing it
 - [ ] A scheduled run with no new upstream release ends quietly with no release and no message
