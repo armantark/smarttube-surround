@@ -67,6 +67,9 @@ upstream_code=$(git show "refs/tags/$tag:smarttubetv/build.gradle" |
   sed -nE 's/^[[:space:]]*versionCode ([0-9]+)[[:space:]]*$/\1/p')
 [[ $upstream_code =~ ^[0-9]+$ ]] || { echo "expected one versionCode line in smarttubetv/build.gradle" >&2; exit 1; }
 sed -E -i.bak "s/^([[:space:]]*versionCode )[0-9]+/\1$((upstream_code * 100 + revision))/" smarttubetv/build.gradle
+grep -qE 'versionNameSuffix "-surround[^"]*"' smarttubetv/build.gradle || { echo "expected the -surround version name suffix from the patch" >&2; exit 1; }
+# The revision goes into the version name too, so the app reports the same name as its manifest entry.
+sed -E -i.bak "s/versionNameSuffix \"-surround[^\"]*\"/versionNameSuffix \"-surround-r$revision\"/" smarttubetv/build.gradle
 rm smarttubetv/build.gradle.bak
 
 # Upstream's Firebase config has no client for this application ID, so its Google Services

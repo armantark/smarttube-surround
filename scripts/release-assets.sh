@@ -37,6 +37,14 @@ case $status in
   *) echo "could not download the latest manifest: HTTP $status" >&2; exit 1 ;;
 esac
 
+# The updater installs the highest version code in the manifest from the package URLs, so a release
+# that is not newer than every published one would advertise one build and download another.
+published=$(jq '[to_entries[] | select(.key != "package") | .value.versionCode] | max // 0' "$previous_manifest")
+(( version_code > published )) || {
+  echo "version code $version_code is not newer than the published $published; build a newer upstream tag or raise patch-revision" >&2
+  exit 1
+}
+
 # The TV's userspace is 32-bit, so armeabi-v7a is the default list, as in upstream's manifest.
 # The universal APK is for manual installs and has no place in the update channel.
 jq \

@@ -69,7 +69,7 @@ the owner already uses; when a new patched build is published, the owner gets a 
 - **Setting.** One boolean player setting, "Stereo to rear speakers", on by default, stored with SmartTube's other player settings. It also appears first in the player's quality dialog; flipping it there restarts the video.
 - **Build workflow.** One GitHub Actions workflow runs daily and on manual dispatch with an optional upstream tag. It finds the newest upstream beta release, stops quietly when this repository already has a release for that upstream tag at the current patch revision, checks out the tag with submodules, applies the patch series with a three-way apply, builds the beta release APKs with JDK 17 (upstream CI's JDK), verifies the signature, and publishes a release named `<upstream tag>-r<patch revision>` with the APKs and the manifest.
 - **Notifications.** Every failed step posts to the owner's existing ntfy topic (GitHub secret `NTFY_TOPIC`) with the step name, the upstream tag, and a link to the run, at high priority. A published build posts at low priority.
-- **Patch size.** New behaviour lives in new files; the patch touches upstream files only at the hooks: the renderers factory or audio sink construction, the player settings screen, the update URL resource, and the flavor's application ID and app name.
+- **Patch size.** New behaviour lives in new files; the patch touches upstream files only at the hooks: the renderers factory or audio sink construction, the delay renderer's audio sync fix (so it reaches the sink that is actually playing), the player settings screen and the player's quality dialog, the update URL resource, and the flavor's application ID and app name.
 
 ## Testing Decisions
 
