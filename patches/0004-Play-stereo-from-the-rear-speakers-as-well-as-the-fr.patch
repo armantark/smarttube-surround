@@ -14,8 +14,8 @@ audio sink, and so does stereo when the AAC output does not open.
 ---
  .../CustomOverridesRenderersFactory.java      |  11 +-
  .../audio/AacSurroundAudioSink.java           | 792 ++++++++++++++++++
- .../audio/StereoToRearAudioSink.java          | 225 +++++
- 3 files changed, 1026 insertions(+), 2 deletions(-)
+ .../audio/StereoToRearAudioSink.java          | 226 +++++
+ 3 files changed, 1027 insertions(+), 2 deletions(-)
  create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
  create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
 
@@ -862,10 +862,10 @@ index 000000000..90806316d
 +}
 diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
 new file mode 100644
-index 000000000..a6453eb0b
+index 000000000..c31804cdb
 --- /dev/null
 +++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,226 @@
 +package com.google.android.exoplayer2.audio;
 +
 +import androidx.annotation.Nullable;
@@ -986,7 +986,8 @@ index 000000000..a6453eb0b
 +      try {
 +        return surroundSink.handleBuffer(buffer, presentationTimeUs);
 +      } catch (InitializationException e) {
-+        Log.w(TAG, "AAC-LC 5.1 output did not open; playing stereo", e);
++        // AacSurroundAudioSink logged the cause; InitializationException does not carry it.
++        Log.w(TAG, "AAC-LC 5.1 output did not open; playing stereo");
 +        activate(defaultSink);
 +        try {
 +          defaultSink.configure(

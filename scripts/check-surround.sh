@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Checks which audio output SmartTube Surround opens on the Sony TV for a stereo video.
 #
-# Usage: scripts/check-surround.sh <on|off>
+# Usage: scripts/check-surround.sh <on|off> [apk]
 #   on   passes when the "Stereo to rear speakers" setting is on and audio_flinger shows a
 #        compressed AAC-LC 5.1 direct output on HDMI ARC with a playing track from the app
 #   off  passes when the setting is off and the app's track plays on the stereo PCM mixer output
+#   apk  a patched build to install first (the armeabi-v7a APK for this TV); without it the check
+#        runs against the installed build
 #
 # The soundbar is muted through its own Audio Control API before anything plays, and stays muted:
 # the TV's mute key toggles, and the TV's mute does not silence passthrough. When the setting
@@ -21,7 +23,8 @@
 set -euo pipefail
 
 mode=${1:-}
-[[ $mode == on || $mode == off ]] || { echo "usage: $0 <on|off>" >&2; exit 2; }
+apk=${2:-}
+[[ $mode == on || $mode == off ]] || { echo "usage: $0 <on|off> [apk]" >&2; exit 2; }
 export ADB_USB=0 # adb's USB backend hangs the owner's Mac
 tv=${TV:-192.168.0.3:5555}
 soundbar=${SOUNDBAR:-192.168.0.196:10000}
@@ -120,6 +123,10 @@ leave_player() {
 }
 
 adb get-state >/dev/null || fail "no adb connection to $tv"
+if [[ -n $apk ]]; then
+  note "installing $apk"
+  adb install -r "$apk" >/dev/null
+fi
 adb shell pm path "$package" >/dev/null || fail "$package is not installed on $tv"
 mute_soundbar
 read_compressed_outputs

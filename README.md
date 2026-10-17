@@ -26,6 +26,19 @@ The keystore lives outside the repository, at `~/.config/smarttube-surround/rele
 passwords in `keystore.env` beside it. Every release must be signed with this key, or the TV cannot
 update the installed app, so keep a backup of both files.
 
+## Check on the TV
+
+```sh
+scripts/check-surround.sh on
+scripts/check-surround.sh off
+```
+
+The script plays a stereo video in SmartTube Surround on the owner's TV with the soundbar muted.
+`on` passes only when the TV sends the AAC-LC 5.1 stream to the soundbar, `off` only when the
+plain stereo path plays; either way it sets "Stereo to rear speakers" to match. It fails when a
+compressed output stays open afterwards, because the TV has only two. The comment at the top of
+the script lists its options.
+
 ## Releases
 
 The "Build and publish" workflow runs daily at 08:23 UTC and on manual dispatch with an optional
