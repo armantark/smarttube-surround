@@ -1,0 +1,1094 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: armantark <chuck67322@berkeley.edu>
+Date: Sat, 17 Oct 2026 13:56:13 -0700
+Subject: [PATCH 4/4] Play stereo from the rear speakers as well as the front
+
+The TV sends PCM to the soundbar in stereo only, and the soundbar's
+upmix puts only room sound in the rear speakers, so voices stay in
+front. With the setting on, the player's audio sink plays stereo PCM
+as AAC-LC 5.1, encoded by the TV's own AAC encoder, with the left and
+right channels copied to the rear pair, through the TV's compressed
+passthrough output. Multichannel and compressed audio, tunneled
+playback, and outputs that cannot take AAC-LC 5.1 keep upstream's
+audio sink, and so does stereo when the AAC output does not open.
+---
+ .../CustomOverridesRenderersFactory.java      |  11 +-
+ .../audio/AacSurroundAudioSink.java           | 790 ++++++++++++++++++
+ .../audio/StereoToRearAudioSink.java          | 225 +++++
+ 3 files changed, 1024 insertions(+), 2 deletions(-)
+ create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
+ create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
+
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java
+index a921b64cf..a4c426847 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java
+@@ -8,6 +8,7 @@ import com.google.android.exoplayer2.audio.AudioCapabilities;
+ import com.google.android.exoplayer2.audio.AudioProcessor;
+ import com.google.android.exoplayer2.audio.AudioRendererEventListener;
+ import com.google.android.exoplayer2.audio.DefaultAudioSink;
++import com.google.android.exoplayer2.audio.StereoToRearAudioSink;
+ import com.google.android.exoplayer2.drm.DrmSessionManager;
+ import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
+ import com.google.android.exoplayer2.mediacodec.MediaCodecSelector;
+@@ -16,6 +17,7 @@ import com.google.android.exoplayer2.video.VideoRendererEventListener;
+ import com.liskovsoft.smartyoutubetv2.common.exoplayer.versions.selector.BlacklistMediaCodecSelector;
+ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
+ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
++import com.liskovsoft.smartyoutubetv2.common.prefs.StereoToRearSetting;
+ 
+ import java.util.ArrayList;
+ 
+@@ -126,7 +128,10 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase
+         super.buildAudioRenderers(context, extensionRendererMode, mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys,
+                 enableDecoderFallback, audioProcessors, eventHandler, eventListener, out);
+ 
+-        if ((mPlayerData.getAudioDelayMs() == 0 || !mPlayerData.isAudioDelayEnabled()) && !mPlayerTweaksData.isAudioSyncFixEnabled()) {
++        boolean isStereoToRearEnabled = StereoToRearSetting.isEnabled(context);
++
++        if ((mPlayerData.getAudioDelayMs() == 0 || !mPlayerData.isAudioDelayEnabled()) && !mPlayerTweaksData.isAudioSyncFixEnabled()
++                && !isStereoToRearEnabled) {
+             // Improve performance a bit by eliminating calculations presented in custom renderer.
+ 
+             return;
+@@ -134,7 +139,9 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase
+ 
+         DelayMediaCodecAudioRenderer audioRenderer =
+                 new DelayMediaCodecAudioRenderer(context, mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys, enableDecoderFallback,
+-                        eventHandler, eventListener, new DefaultAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors));
++                        eventHandler, eventListener, isStereoToRearEnabled
++                                ? new StereoToRearAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors)
++                                : new DefaultAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors));
+ 
+         audioRenderer.setAudioDelayMs(mPlayerData.isAudioDelayEnabled() ? mPlayerData.getAudioDelayMs() : 0);
+         audioRenderer.enableAudioSyncFix(mPlayerTweaksData.isAudioSyncFixEnabled());
+diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
+new file mode 100644
+index 000000000..5550fe6a7
+--- /dev/null
++++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
+@@ -0,0 +1,790 @@
++package com.google.android.exoplayer2.audio;
++
++import android.annotation.TargetApi;
++import android.media.AudioFormat;
++import android.media.AudioManager;
++import android.media.AudioTrack;
++import android.media.MediaCodec;
++import android.media.MediaCodecInfo;
++import android.media.MediaFormat;
++import android.os.SystemClock;
++import androidx.annotation.Nullable;
++import com.google.android.exoplayer2.C;
++import com.google.android.exoplayer2.PlaybackParameters;
++import com.google.android.exoplayer2.audio.DefaultAudioSink.DefaultAudioProcessorChain;
++import com.google.android.exoplayer2.util.Assertions;
++import com.google.android.exoplayer2.util.Log;
++import com.google.android.exoplayer2.util.Util;
++import java.io.IOException;
++import java.nio.ByteBuffer;
++import java.nio.ByteOrder;
++import java.nio.ShortBuffer;
++import java.util.ArrayDeque;
++import java.util.ArrayList;
++
++/**
++ * Plays 16-bit stereo PCM as AAC-LC 5.1 through a compressed passthrough {@link AudioTrack}, with
++ * the left and right channels copied to the rear pair and silent centre and LFE channels.
++ *
++ * <p>The TV's own encoder, {@code c2.android.aac.encoder}, encodes the 5.1 PCM, and the stream
++ * goes to the track in ADTS framing, because the TV plays nothing from raw access units. Speed,
++ * pitch, silence skipping, volume, and gapless trimming apply to the stereo PCM before encoding,
++ * as {@link DefaultAudioSink} applies them before its PCM track.
++ */
++@TargetApi(29)
++/* package */ final class AacSurroundAudioSink implements AudioSink {
++
++  private static final String TAG = "StereoToRear";
++  private static final String ENCODER_NAME = "c2.android.aac.encoder";
++  private static final int CHANNEL_MASK = AudioFormat.CHANNEL_OUT_5POINT1;
++  private static final int BIT_RATE = 384_000;
++  private static final int STEREO_FRAME_BYTES = 4;
++  private static final int SURROUND_FRAME_BYTES = 12;
++  private static final int FRAMES_PER_ACCESS_UNIT = 1024;
++  /**
++   * Frames of priming the encoder puts ahead of the first input frame, measured by decoding its
++   * output on the TV. The track's playback position counts them, so the sink subtracts them.
++   */
++  private static final int ENCODER_DELAY_FRAMES = 2048;
++  /** About 0.7 s of 384 kb/s AAC. */
++  private static final int TRACK_BUFFER_BYTES = 32 * 1024;
++  /** ADTS sampling_frequency_index order, ISO/IEC 14496-3 table 1.18. */
++  private static final int[] ADTS_SAMPLE_RATES = {
++    96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350
++  };
++
++  private static final int START_NOT_SET = 0;
++  private static final int START_IN_SYNC = 1;
++  private static final int START_NEED_SYNC = 2;
++
++  private final AudioProcessorChain audioProcessorChain;
++  private final TrimmingAudioProcessor trimmingAudioProcessor;
++  private final AudioProcessor[] availableAudioProcessors;
++  private final AudioTrackPositionTracker audioTrackPositionTracker;
++  private final ArrayDeque<PlaybackParametersCheckpoint> playbackParametersCheckpoints;
++  private final MediaCodec.BufferInfo encoderOutputInfo;
++
++  @Nullable private Listener listener;
++  private int sampleRate;
++  private AudioAttributes audioAttributes;
++  private int audioSessionId;
++  private float volume;
++  private boolean playing;
++
++  @Nullable private MediaCodec encoder;
++  @Nullable private AudioTrack audioTrack;
++  @Nullable private ByteBuffer pendingAdtsFrame;
++  private boolean encoderInputEnded;
++  private boolean encoderOutputEnded;
++  private long lastFeedElapsedRealtimeMs;
++
++  private AudioProcessor[] activeAudioProcessors;
++  private ByteBuffer[] outputBuffers;
++  @Nullable private ByteBuffer inputBuffer;
++  @Nullable private ByteBuffer outputBuffer;
++  private int drainingAudioProcessorIndex;
++  private boolean handledEndOfStream;
++  private long submittedFrames;
++  /** Stereo frames queued into the encoder: the playout timeline. */
++  private long encodedFrames;
++  /** Frames of the access units written to the track: the track's timeline, priming included. */
++  private long writtenFrames;
++  private int startMediaTimeState;
++  private long startMediaTimeUs;
++
++  private PlaybackParameters playbackParameters;
++  @Nullable private PlaybackParameters afterDrainPlaybackParameters;
++  private long playbackParametersOffsetUs;
++  private long playbackParametersPositionUs;
++
++  /** Returns whether the output takes AAC-LC 5.1 at {@code sampleRate} as a direct track. */
++  @SuppressWarnings("deprecation") // AudioManager.getDirectPlaybackSupport needs API 33; the TV runs 31.
++  public static boolean isSupported(int sampleRate, AudioAttributes audioAttributes) {
++    return adtsSampleRateIndex(sampleRate) != C.INDEX_UNSET
++        && AudioTrack.isDirectPlaybackSupported(
++            audioFormat(sampleRate), audioAttributes.getAudioAttributesV21());
++  }
++
++  /**
++   * @param audioProcessors Processors applied to the stereo PCM before silence skipping and
++   *     playback parameters, as in {@link DefaultAudioSink}.
++   */
++  public AacSurroundAudioSink(AudioProcessor[] audioProcessors) {
++    audioProcessorChain = new DefaultAudioProcessorChain(audioProcessors);
++    trimmingAudioProcessor = new TrimmingAudioProcessor();
++    ArrayList<AudioProcessor> processors = new ArrayList<>();
++    processors.add(trimmingAudioProcessor);
++    for (AudioProcessor audioProcessor : audioProcessorChain.getAudioProcessors()) {
++      processors.add(audioProcessor);
++    }
++    availableAudioProcessors = processors.toArray(new AudioProcessor[0]);
++    audioTrackPositionTracker =
++        new AudioTrackPositionTracker(new PositionTrackerListener(), /* isLatencyQuirkEnabled= */ false);
++    playbackParametersCheckpoints = new ArrayDeque<>();
++    encoderOutputInfo = new MediaCodec.BufferInfo();
++    audioAttributes = AudioAttributes.DEFAULT;
++    audioSessionId = C.AUDIO_SESSION_ID_UNSET;
++    volume = 1f;
++    activeAudioProcessors = new AudioProcessor[0];
++    outputBuffers = new ByteBuffer[0];
++    drainingAudioProcessorIndex = C.INDEX_UNSET;
++    startMediaTimeState = START_NOT_SET;
++    playbackParameters = PlaybackParameters.DEFAULT;
++  }
++
++  @Override
++  public void setListener(Listener listener) {
++    this.listener = listener;
++  }
++
++  @Override
++  public boolean supportsOutput(int channelCount, @C.Encoding int encoding) {
++    return channelCount == 2 && encoding == C.ENCODING_PCM_16BIT;
++  }
++
++  @Override
++  public long getCurrentPositionUs(boolean sourceEnded) {
++    if (!isInitialized() || startMediaTimeState == START_NOT_SET) {
++      return CURRENT_POSITION_NOT_SET;
++    }
++    long trackPositionUs =
++        Math.min(
++            audioTrackPositionTracker.getCurrentPositionUs(sourceEnded),
++            framesToDurationUs(writtenFrames));
++    long positionUs = Math.max(0, trackPositionUs - framesToDurationUs(ENCODER_DELAY_FRAMES));
++    return startMediaTimeUs + applySkipping(applySpeedup(positionUs));
++  }
++
++  @Override
++  public void configure(
++      @C.Encoding int inputEncoding,
++      int inputChannelCount,
++      int inputSampleRate,
++      int specifiedBufferSize,
++      @Nullable int[] outputChannels,
++      int trimStartFrames,
++      int trimEndFrames)
++      throws ConfigurationException {
++    Assertions.checkArgument(
++        inputEncoding == C.ENCODING_PCM_16BIT && inputChannelCount == 2 && outputChannels == null);
++    trimmingAudioProcessor.setTrimFrameCount(trimStartFrames, trimEndFrames);
++    boolean flushAudioProcessors = false;
++    for (AudioProcessor audioProcessor : availableAudioProcessors) {
++      try {
++        flushAudioProcessors |=
++            audioProcessor.configure(inputSampleRate, inputChannelCount, inputEncoding);
++      } catch (AudioProcessor.UnhandledFormatException e) {
++        throw new ConfigurationException(e);
++      }
++      if (audioProcessor.isActive()
++          && (audioProcessor.getOutputChannelCount() != inputChannelCount
++              || audioProcessor.getOutputSampleRateHz() != inputSampleRate
++              || audioProcessor.getOutputEncoding() != inputEncoding)) {
++        throw new ConfigurationException(
++            audioProcessor + " changes the stereo format the AAC encoder is set up for");
++      }
++    }
++    if (isInitialized() && (flushAudioProcessors || inputSampleRate != sampleRate)) {
++      flush();
++    }
++    sampleRate = inputSampleRate;
++  }
++
++  @Override
++  public void play() {
++    playing = true;
++    if (isInitialized()) {
++      audioTrackPositionTracker.start();
++      audioTrack.play();
++    }
++  }
++
++  @Override
++  public void handleDiscontinuity() {
++    if (startMediaTimeState == START_IN_SYNC) {
++      startMediaTimeState = START_NEED_SYNC;
++    }
++  }
++
++  @Override
++  @SuppressWarnings("ReferenceEquality")
++  public boolean handleBuffer(ByteBuffer buffer, long presentationTimeUs)
++      throws InitializationException, WriteException {
++    Assertions.checkArgument(inputBuffer == null || buffer == inputBuffer);
++    if (!isInitialized()) {
++      initialize(presentationTimeUs);
++      if (playing) {
++        play();
++      }
++    }
++    if (!audioTrackPositionTracker.mayHandleBuffer(writtenFrames)) {
++      return false;
++    }
++
++    if (inputBuffer == null) {
++      if (!buffer.hasRemaining()) {
++        return true;
++      }
++      if (afterDrainPlaybackParameters != null) {
++        if (!drainAudioProcessorsToEndOfStream()) {
++          return false;
++        }
++        PlaybackParameters newPlaybackParameters = afterDrainPlaybackParameters;
++        afterDrainPlaybackParameters = null;
++        applyPlaybackParameters(newPlaybackParameters, presentationTimeUs);
++      }
++      syncStartMediaTime(presentationTimeUs);
++      submittedFrames += buffer.remaining() / STEREO_FRAME_BYTES;
++      inputBuffer = buffer;
++    }
++
++    processBuffers();
++    if (!inputBuffer.hasRemaining()) {
++      inputBuffer = null;
++      return true;
++    }
++    return false;
++  }
++
++  @Override
++  public void playToEndOfStream() throws WriteException {
++    if (handledEndOfStream || !isInitialized() || !drainAudioProcessorsToEndOfStream()) {
++      return;
++    }
++    if (!encoderInputEnded) {
++      int index = encoder.dequeueInputBuffer(0);
++      if (index < 0) {
++        return;
++      }
++      encoder.queueInputBuffer(
++          index, 0, 0, framesToDurationUs(encodedFrames), MediaCodec.BUFFER_FLAG_END_OF_STREAM);
++      encoderInputEnded = true;
++    }
++    writeEncodedOutput();
++    if (!encoderOutputEnded || pendingAdtsFrame != null) {
++      return;
++    }
++    // No audioTrack.stop() here: see releaseOutput(). The tracker plays the rest out by the clock.
++    audioTrackPositionTracker.handleEndOfStream(writtenFrames);
++    handledEndOfStream = true;
++  }
++
++  @Override
++  public boolean isEnded() {
++    return !isInitialized() || (handledEndOfStream && !hasPendingData());
++  }
++
++  @Override
++  public boolean hasPendingData() {
++    return isInitialized() && audioTrackPositionTracker.hasPendingData(writtenFrames);
++  }
++
++  @Override
++  public PlaybackParameters setPlaybackParameters(PlaybackParameters playbackParameters) {
++    PlaybackParameters lastSetPlaybackParameters =
++        afterDrainPlaybackParameters != null
++            ? afterDrainPlaybackParameters
++            : !playbackParametersCheckpoints.isEmpty()
++                ? playbackParametersCheckpoints.getLast().playbackParameters
++                : this.playbackParameters;
++    if (!playbackParameters.equals(lastSetPlaybackParameters)) {
++      if (isInitialized()) {
++        // Drain the processors so the new parameters apply from a known output position.
++        afterDrainPlaybackParameters = playbackParameters;
++      } else {
++        this.playbackParameters = playbackParameters;
++      }
++    }
++    return this.playbackParameters;
++  }
++
++  @Override
++  public PlaybackParameters getPlaybackParameters() {
++    return playbackParameters;
++  }
++
++  @Override
++  public void setAudioAttributes(AudioAttributes audioAttributes) {
++    if (this.audioAttributes.equals(audioAttributes)) {
++      return;
++    }
++    this.audioAttributes = audioAttributes;
++    flush();
++    audioSessionId = C.AUDIO_SESSION_ID_UNSET;
++  }
++
++  @Override
++  public void setAudioSessionId(int audioSessionId) {
++    if (this.audioSessionId != audioSessionId) {
++      this.audioSessionId = audioSessionId;
++      flush();
++    }
++  }
++
++  @Override
++  public void setAuxEffectInfo(AuxEffectInfo auxEffectInfo) {
++    // Effects process PCM in the mixer, which a compressed track bypasses.
++  }
++
++  @Override
++  public void enableTunnelingV21(int tunnelingAudioSessionId) {
++    throw new UnsupportedOperationException("Tunneled playback stays on DefaultAudioSink");
++  }
++
++  @Override
++  public void disableTunneling() {
++    // Never tunneled.
++  }
++
++  @Override
++  public void setVolume(float volume) {
++    this.volume = volume;
++  }
++
++  @Override
++  public void pause() {
++    playing = false;
++    if (isInitialized() && audioTrackPositionTracker.pause()) {
++      audioTrack.pause();
++    }
++  }
++
++  @Override
++  public void flush() {
++    if (!isInitialized()) {
++      return;
++    }
++    submittedFrames = 0;
++    encodedFrames = 0;
++    writtenFrames = 0;
++    if (afterDrainPlaybackParameters != null) {
++      playbackParameters = afterDrainPlaybackParameters;
++      afterDrainPlaybackParameters = null;
++    } else if (!playbackParametersCheckpoints.isEmpty()) {
++      playbackParameters = playbackParametersCheckpoints.getLast().playbackParameters;
++    }
++    playbackParametersCheckpoints.clear();
++    playbackParametersOffsetUs = 0;
++    playbackParametersPositionUs = 0;
++    trimmingAudioProcessor.resetTrimmedFrameCount();
++    flushAudioProcessors();
++    inputBuffer = null;
++    outputBuffer = null;
++    pendingAdtsFrame = null;
++    encoderInputEnded = false;
++    encoderOutputEnded = false;
++    handledEndOfStream = false;
++    drainingAudioProcessorIndex = C.INDEX_UNSET;
++    startMediaTimeState = START_NOT_SET;
++    releaseOutput();
++    audioTrackPositionTracker.reset();
++  }
++
++  @Override
++  public void reset() {
++    flush();
++    for (AudioProcessor audioProcessor : availableAudioProcessors) {
++      audioProcessor.reset();
++    }
++    audioSessionId = C.AUDIO_SESSION_ID_UNSET;
++    playing = false;
++  }
++
++  /** Keeps the media time of the first frame consistent with the timestamps of new buffers. */
++  private void syncStartMediaTime(long presentationTimeUs) {
++    if (startMediaTimeState == START_NOT_SET) {
++      startMediaTimeUs = Math.max(0, presentationTimeUs);
++      startMediaTimeState = START_IN_SYNC;
++      return;
++    }
++    long expectedPresentationTimeUs =
++        startMediaTimeUs
++            + framesToDurationUs(submittedFrames - trimmingAudioProcessor.getTrimmedFrameCount());
++    if (startMediaTimeState == START_IN_SYNC
++        && Math.abs(expectedPresentationTimeUs - presentationTimeUs) > 200000) {
++      Log.w(TAG, "Discontinuity detected [expected " + expectedPresentationTimeUs + ", got "
++          + presentationTimeUs + "]");
++      startMediaTimeState = START_NEED_SYNC;
++    }
++    if (startMediaTimeState == START_NEED_SYNC) {
++      long adjustmentUs = presentationTimeUs - expectedPresentationTimeUs;
++      startMediaTimeUs += adjustmentUs;
++      startMediaTimeState = START_IN_SYNC;
++      if (listener != null && adjustmentUs != 0) {
++        listener.onPositionDiscontinuity();
++      }
++    }
++  }
++
++  private boolean isInitialized() {
++    return audioTrack != null;
++  }
++
++  private void initialize(long presentationTimeUs) throws InitializationException {
++    try {
++      encoder = MediaCodec.createByCodecName(ENCODER_NAME);
++      encoder.configure(encoderFormat(sampleRate), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
++      encoder.start();
++    } catch (IOException | IllegalArgumentException | IllegalStateException e) {
++      releaseEncoder();
++      Log.w(TAG, "Cannot start " + ENCODER_NAME, e);
++      throw new InitializationException(
++          AudioTrack.STATE_UNINITIALIZED, sampleRate, CHANNEL_MASK, TRACK_BUFFER_BYTES);
++    }
++    try {
++      audioTrack =
++          new AudioTrack.Builder()
++              .setAudioAttributes(audioAttributes.getAudioAttributesV21())
++              .setAudioFormat(audioFormat(sampleRate))
++              .setBufferSizeInBytes(TRACK_BUFFER_BYTES)
++              .setTransferMode(AudioTrack.MODE_STREAM)
++              .setSessionId(
++                  audioSessionId == C.AUDIO_SESSION_ID_UNSET
++                      ? AudioManager.AUDIO_SESSION_ID_GENERATE
++                      : audioSessionId)
++              .build();
++    } catch (UnsupportedOperationException e) {
++      // Direct playback support does not promise a free output: the TV has two compressed ones.
++      releaseEncoder();
++      Log.w(TAG, "Cannot open an AAC-LC 5.1 track", e);
++      throw new InitializationException(
++          AudioTrack.STATE_UNINITIALIZED, sampleRate, CHANNEL_MASK, TRACK_BUFFER_BYTES);
++    }
++    if (audioSessionId != audioTrack.getAudioSessionId()) {
++      audioSessionId = audioTrack.getAudioSessionId();
++      if (listener != null) {
++        listener.onAudioSessionId(audioSessionId);
++      }
++    }
++    applyPlaybackParameters(playbackParameters, presentationTimeUs);
++    // The track takes encoded bytes, so the tracker gets no PCM frame size and no PCM latency
++    // correction; ENCODING_INVALID also keeps it off the AC-3 workarounds of old platforms.
++    audioTrackPositionTracker.setAudioTrack(
++        audioTrack, C.ENCODING_INVALID, C.LENGTH_UNSET, TRACK_BUFFER_BYTES,
++        /* applyDolbyPassThroughQuirk= */ false);
++  }
++
++  /**
++   * Ends the track with pause() and flush(), never stop(): this TV takes AAC in whole 4-byte words,
++   * so a stopped track never drains its last bytes, and its compressed output stays open after
++   * release, until the TV restarts. With both of the TV's compressed outputs held that way, no app
++   * can play 5.1 at all.
++   */
++  private void releaseOutput() {
++    audioTrack.pause();
++    audioTrack.flush();
++    audioTrack.release();
++    audioTrack = null;
++    releaseEncoder();
++  }
++
++  private void releaseEncoder() {
++    if (encoder != null) {
++      encoder.release();
++      encoder = null;
++    }
++  }
++
++  private void processBuffers() throws WriteException {
++    int count = activeAudioProcessors.length;
++    int index = count;
++    while (index >= 0) {
++      ByteBuffer input =
++          index > 0
++              ? outputBuffers[index - 1]
++              : (inputBuffer != null ? inputBuffer : AudioProcessor.EMPTY_BUFFER);
++      if (index == count) {
++        encode(input);
++      } else {
++        AudioProcessor audioProcessor = activeAudioProcessors[index];
++        audioProcessor.queueInput(input);
++        ByteBuffer output = audioProcessor.getOutput();
++        outputBuffers[index] = output;
++        if (output.hasRemaining()) {
++          index++;
++          continue;
++        }
++      }
++      if (input.hasRemaining()) {
++        return;
++      }
++      index--;
++    }
++  }
++
++  private boolean drainAudioProcessorsToEndOfStream() throws WriteException {
++    boolean audioProcessorNeedsEndOfStream = false;
++    if (drainingAudioProcessorIndex == C.INDEX_UNSET) {
++      drainingAudioProcessorIndex = 0;
++      audioProcessorNeedsEndOfStream = true;
++    }
++    while (drainingAudioProcessorIndex < activeAudioProcessors.length) {
++      AudioProcessor audioProcessor = activeAudioProcessors[drainingAudioProcessorIndex];
++      if (audioProcessorNeedsEndOfStream) {
++        audioProcessor.queueEndOfStream();
++      }
++      processBuffers();
++      if (!audioProcessor.isEnded()) {
++        return false;
++      }
++      audioProcessorNeedsEndOfStream = true;
++      drainingAudioProcessorIndex++;
++    }
++    if (outputBuffer != null) {
++      encode(outputBuffer);
++      if (outputBuffer != null) {
++        return false;
++      }
++    }
++    drainingAudioProcessorIndex = C.INDEX_UNSET;
++    return true;
++  }
++
++  /** Queues as much processed stereo as the encoder takes, then writes what it has encoded. */
++  @SuppressWarnings("ReferenceEquality")
++  private void encode(ByteBuffer stereo) throws WriteException {
++    writeEncodedOutput();
++    if (!stereo.hasRemaining()) {
++      return;
++    }
++    Assertions.checkArgument(outputBuffer == null || outputBuffer == stereo);
++    while (stereo.hasRemaining()) {
++      int index = encoder.dequeueInputBuffer(0);
++      if (index < 0) {
++        break;
++      }
++      ByteBuffer encoderInput = encoder.getInputBuffer(index);
++      int frames =
++          Math.min(
++              stereo.remaining() / STEREO_FRAME_BYTES,
++              encoderInput.remaining() / SURROUND_FRAME_BYTES);
++      upmix(stereo, encoderInput, frames);
++      encoder.queueInputBuffer(
++          index, 0, frames * SURROUND_FRAME_BYTES, framesToDurationUs(encodedFrames), 0);
++      encodedFrames += frames;
++    }
++    writeEncodedOutput();
++    outputBuffer = stereo.hasRemaining() ? stereo : null;
++  }
++
++  /** Writes encoded access units to the track, as ADTS frames, until it or the encoder runs dry. */
++  private void writeEncodedOutput() throws WriteException {
++    while (true) {
++      if (pendingAdtsFrame != null) {
++        int bytesWritten =
++            audioTrack.write(
++                pendingAdtsFrame, pendingAdtsFrame.remaining(), AudioTrack.WRITE_NON_BLOCKING);
++        lastFeedElapsedRealtimeMs = SystemClock.elapsedRealtime();
++        if (bytesWritten < 0) {
++          throw new WriteException(bytesWritten);
++        }
++        if (pendingAdtsFrame.hasRemaining()) {
++          return;
++        }
++        pendingAdtsFrame = null;
++        writtenFrames += FRAMES_PER_ACCESS_UNIT;
++      }
++      if (encoderOutputEnded) {
++        return;
++      }
++      int index = encoder.dequeueOutputBuffer(encoderOutputInfo, 0);
++      if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
++        continue;
++      }
++      if (index < 0) {
++        return;
++      }
++      encoderOutputEnded = (encoderOutputInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
++      boolean isCodecConfig = (encoderOutputInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
++      if (!isCodecConfig && encoderOutputInfo.size > 0) {
++        ByteBuffer accessUnit = encoder.getOutputBuffer(index);
++        accessUnit.position(encoderOutputInfo.offset);
++        accessUnit.limit(encoderOutputInfo.offset + encoderOutputInfo.size);
++        pendingAdtsFrame = adtsFrame(accessUnit, sampleRate);
++      }
++      encoder.releaseOutputBuffer(index, false);
++    }
++  }
++
++  /**
++   * Writes {@code frames} stereo frames to the encoder input as 5.1: front and rear left get the
++   * left channel, front and rear right the right channel, centre and LFE silence.
++   */
++  private void upmix(ByteBuffer stereo, ByteBuffer encoderInput, int frames) {
++    ShortBuffer samples = stereo.slice().order(ByteOrder.nativeOrder()).asShortBuffer();
++    encoderInput.order(ByteOrder.nativeOrder());
++    for (int i = 0; i < frames; i++) {
++      short left = (short) (samples.get() * volume);
++      short right = (short) (samples.get() * volume);
++      // The encoder reads AAC channel order (centre, left, right, rear left, rear right, LFE),
++      // not Android's; in Android's order the left channel came out of the centre speaker.
++      encoderInput
++          .putShort((short) 0)
++          .putShort(left)
++          .putShort(right)
++          .putShort(left)
++          .putShort(right)
++          .putShort((short) 0);
++    }
++    stereo.position(stereo.position() + frames * STEREO_FRAME_BYTES);
++  }
++
++  private void setupAudioProcessors() {
++    ArrayList<AudioProcessor> newAudioProcessors = new ArrayList<>();
++    for (AudioProcessor audioProcessor : availableAudioProcessors) {
++      if (audioProcessor.isActive()) {
++        newAudioProcessors.add(audioProcessor);
++      } else {
++        audioProcessor.flush();
++      }
++    }
++    activeAudioProcessors = newAudioProcessors.toArray(new AudioProcessor[0]);
++    outputBuffers = new ByteBuffer[activeAudioProcessors.length];
++    flushAudioProcessors();
++  }
++
++  private void flushAudioProcessors() {
++    for (int i = 0; i < activeAudioProcessors.length; i++) {
++      AudioProcessor audioProcessor = activeAudioProcessors[i];
++      audioProcessor.flush();
++      outputBuffers[i] = audioProcessor.getOutput();
++    }
++  }
++
++  private void applyPlaybackParameters(
++      PlaybackParameters playbackParameters, long presentationTimeUs) {
++    PlaybackParameters newPlaybackParameters =
++        audioProcessorChain.applyPlaybackParameters(playbackParameters);
++    playbackParametersCheckpoints.add(
++        new PlaybackParametersCheckpoint(
++            newPlaybackParameters,
++            /* mediaTimeUs= */ Math.max(0, presentationTimeUs),
++            /* positionUs= */ framesToDurationUs(encodedFrames)));
++    setupAudioProcessors();
++  }
++
++  private long applySpeedup(long positionUs) {
++    @Nullable PlaybackParametersCheckpoint checkpoint = null;
++    while (!playbackParametersCheckpoints.isEmpty()
++        && positionUs >= playbackParametersCheckpoints.getFirst().positionUs) {
++      checkpoint = playbackParametersCheckpoints.remove();
++    }
++    if (checkpoint != null) {
++      playbackParameters = checkpoint.playbackParameters;
++      playbackParametersPositionUs = checkpoint.positionUs;
++      playbackParametersOffsetUs = checkpoint.mediaTimeUs - startMediaTimeUs;
++    }
++    if (playbackParameters.speed == 1f) {
++      return positionUs + playbackParametersOffsetUs - playbackParametersPositionUs;
++    }
++    if (playbackParametersCheckpoints.isEmpty()) {
++      return playbackParametersOffsetUs
++          + audioProcessorChain.getMediaDuration(positionUs - playbackParametersPositionUs);
++    }
++    // Still playing audio processed at an earlier speed, so scale by that speed.
++    return playbackParametersOffsetUs
++        + Util.getMediaDurationForPlayoutDuration(
++            positionUs - playbackParametersPositionUs, playbackParameters.speed);
++  }
++
++  private long applySkipping(long positionUs) {
++    return positionUs + framesToDurationUs(audioProcessorChain.getSkippedOutputFrameCount());
++  }
++
++  private long framesToDurationUs(long frameCount) {
++    return frameCount * C.MICROS_PER_SECOND / sampleRate;
++  }
++
++  private static AudioFormat audioFormat(int sampleRate) {
++    return new AudioFormat.Builder()
++        .setEncoding(AudioFormat.ENCODING_AAC_LC)
++        .setSampleRate(sampleRate)
++        .setChannelMask(CHANNEL_MASK)
++        .build();
++  }
++
++  private static MediaFormat encoderFormat(int sampleRate) {
++    MediaFormat format = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, sampleRate, 6);
++    format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
++    format.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
++    return format;
++  }
++
++  private static int adtsSampleRateIndex(int sampleRate) {
++    for (int i = 0; i < ADTS_SAMPLE_RATES.length; i++) {
++      if (ADTS_SAMPLE_RATES[i] == sampleRate) {
++        return i;
++      }
++    }
++    return C.INDEX_UNSET;
++  }
++
++  /** One AAC-LC 5.1 access unit behind a 7-byte ADTS header (MPEG-4, no CRC). */
++  private static ByteBuffer adtsFrame(ByteBuffer accessUnit, int sampleRate) {
++    int profile = 2; // AAC LC audio object type.
++    int channelConfiguration = 6; // 5.1
++    int sampleRateIndex = adtsSampleRateIndex(sampleRate);
++    int length = 7 + accessUnit.remaining();
++    ByteBuffer frame = ByteBuffer.allocate(length);
++    frame.put((byte) 0xff);
++    frame.put((byte) 0xf1);
++    frame.put((byte) (((profile - 1) << 6) | (sampleRateIndex << 2) | (channelConfiguration >> 2)));
++    frame.put((byte) (((channelConfiguration & 3) << 6) | (length >> 11)));
++    frame.put((byte) ((length >> 3) & 0xff));
++    frame.put((byte) (((length & 7) << 5) | 0x1f));
++    frame.put((byte) 0xfc);
++    frame.put(accessUnit);
++    frame.flip();
++    return frame;
++  }
++
++  private static final class PlaybackParametersCheckpoint {
++
++    private final PlaybackParameters playbackParameters;
++    private final long mediaTimeUs;
++    private final long positionUs;
++
++    private PlaybackParametersCheckpoint(
++        PlaybackParameters playbackParameters, long mediaTimeUs, long positionUs) {
++      this.playbackParameters = playbackParameters;
++      this.mediaTimeUs = mediaTimeUs;
++      this.positionUs = positionUs;
++    }
++  }
++
++  private final class PositionTrackerListener implements AudioTrackPositionTracker.Listener {
++
++    @Override
++    public void onPositionFramesMismatch(
++        long audioTimestampPositionFrames,
++        long audioTimestampSystemTimeUs,
++        long systemTimeUs,
++        long playbackPositionUs) {
++      Log.w(TAG, "Spurious audio timestamp (frame position mismatch): "
++          + audioTimestampPositionFrames + ", " + playbackPositionUs);
++    }
++
++    @Override
++    public void onSystemTimeUsMismatch(
++        long audioTimestampPositionFrames,
++        long audioTimestampSystemTimeUs,
++        long systemTimeUs,
++        long playbackPositionUs) {
++      Log.w(TAG, "Spurious audio timestamp (system clock mismatch): "
++          + audioTimestampSystemTimeUs + ", " + systemTimeUs);
++    }
++
++    @Override
++    public void onInvalidLatency(long latencyUs) {
++      Log.w(TAG, "Ignoring impossibly large audio latency: " + latencyUs);
++    }
++
++    @Override
++    public void onUnderrun(int bufferSize, long bufferSizeMs) {
++      if (listener != null) {
++        listener.onUnderrun(
++            bufferSize, bufferSizeMs, SystemClock.elapsedRealtime() - lastFeedElapsedRealtimeMs);
++      }
++    }
++  }
++}
+diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
+new file mode 100644
+index 000000000..a6453eb0b
+--- /dev/null
++++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
+@@ -0,0 +1,225 @@
++package com.google.android.exoplayer2.audio;
++
++import androidx.annotation.Nullable;
++import com.google.android.exoplayer2.C;
++import com.google.android.exoplayer2.PlaybackParameters;
++import com.google.android.exoplayer2.util.Log;
++import com.google.android.exoplayer2.util.Util;
++import java.nio.ByteBuffer;
++
++/**
++ * Plays stereo from a soundbar's rear speakers as well as its front ones.
++ *
++ * <p>Some TVs send PCM to the soundbar in stereo only and more channels only as compressed audio,
++ * and the soundbar's own upmix puts only room sound in the rear speakers. This sink plays 16-bit
++ * stereo PCM as AAC-LC 5.1 with the left and right channels copied to the rear pair ({@link
++ * AacSurroundAudioSink}), when the output reports direct playback support for that format. Every
++ * other input, tunneled playback, and outputs without that support play through a {@link
++ * DefaultAudioSink} unchanged. So does stereo when the AAC output cannot open, so playback never
++ * goes silent.
++ */
++public final class StereoToRearAudioSink implements AudioSink {
++
++  private static final String TAG = "StereoToRear";
++
++  private final DefaultAudioSink defaultSink;
++  private final AacSurroundAudioSink surroundSink;
++  private AudioSink activeSink;
++  private AudioAttributes audioAttributes;
++  private boolean tunneling;
++
++  // The stereo format the surround sink was configured with, for the fallback to defaultSink.
++  private int sampleRate;
++  private int specifiedBufferSize;
++  private int trimStartFrames;
++  private int trimEndFrames;
++
++  /**
++   * @param audioCapabilities As for {@link DefaultAudioSink}.
++   * @param audioProcessors As for {@link DefaultAudioSink}. Both sinks share them: only the active
++   *     sink processes audio, and a sink is flushed before it goes inactive.
++   */
++  public StereoToRearAudioSink(
++      @Nullable AudioCapabilities audioCapabilities, AudioProcessor[] audioProcessors) {
++    defaultSink = new DefaultAudioSink(audioCapabilities, audioProcessors);
++    surroundSink = new AacSurroundAudioSink(audioProcessors);
++    activeSink = defaultSink;
++    audioAttributes = AudioAttributes.DEFAULT;
++  }
++
++  @Override
++  public void setListener(Listener listener) {
++    defaultSink.setListener(listener);
++    surroundSink.setListener(listener);
++  }
++
++  @Override
++  public boolean supportsOutput(int channelCount, @C.Encoding int encoding) {
++    return defaultSink.supportsOutput(channelCount, encoding);
++  }
++
++  @Override
++  public long getCurrentPositionUs(boolean sourceEnded) {
++    return activeSink.getCurrentPositionUs(sourceEnded);
++  }
++
++  @Override
++  public void configure(
++      @C.Encoding int inputEncoding,
++      int inputChannelCount,
++      int inputSampleRate,
++      int specifiedBufferSize,
++      @Nullable int[] outputChannels,
++      int trimStartFrames,
++      int trimEndFrames)
++      throws ConfigurationException {
++    boolean isStereoPcm =
++        inputEncoding == C.ENCODING_PCM_16BIT && inputChannelCount == 2 && outputChannels == null;
++    if (!isStereoPcm || tunneling || Util.SDK_INT < 29) {
++      Log.i(TAG, "Default path for " + inputChannelCount + " channels, encoding " + inputEncoding
++          + (tunneling ? ", tunneled" : "") + ", API " + Util.SDK_INT);
++      activate(defaultSink);
++    } else if (!AacSurroundAudioSink.isSupported(inputSampleRate, audioAttributes)) {
++      Log.i(TAG, "Stereo at " + inputSampleRate + " Hz: no direct playback support for AAC-LC 5.1");
++      activate(defaultSink);
++    } else {
++      Log.i(TAG, "AAC-LC 5.1 at " + inputSampleRate + " Hz with the rear pair copying the front");
++      activate(surroundSink);
++      sampleRate = inputSampleRate;
++      this.specifiedBufferSize = specifiedBufferSize;
++      this.trimStartFrames = trimStartFrames;
++      this.trimEndFrames = trimEndFrames;
++    }
++    activeSink.configure(
++        inputEncoding,
++        inputChannelCount,
++        inputSampleRate,
++        specifiedBufferSize,
++        outputChannels,
++        trimStartFrames,
++        trimEndFrames);
++  }
++
++  @Override
++  public void play() {
++    defaultSink.play();
++    surroundSink.play();
++  }
++
++  @Override
++  public void handleDiscontinuity() {
++    activeSink.handleDiscontinuity();
++  }
++
++  @Override
++  public boolean handleBuffer(ByteBuffer buffer, long presentationTimeUs)
++      throws InitializationException, WriteException {
++    if (activeSink == surroundSink) {
++      try {
++        return surroundSink.handleBuffer(buffer, presentationTimeUs);
++      } catch (InitializationException e) {
++        Log.w(TAG, "AAC-LC 5.1 output did not open; playing stereo", e);
++        activate(defaultSink);
++        try {
++          defaultSink.configure(
++              C.ENCODING_PCM_16BIT, 2, sampleRate, specifiedBufferSize, null, trimStartFrames,
++              trimEndFrames);
++        } catch (ConfigurationException configurationException) {
++          throw new IllegalStateException(configurationException);
++        }
++      }
++    }
++    return defaultSink.handleBuffer(buffer, presentationTimeUs);
++  }
++
++  @Override
++  public void playToEndOfStream() throws WriteException {
++    activeSink.playToEndOfStream();
++  }
++
++  @Override
++  public boolean isEnded() {
++    return activeSink.isEnded();
++  }
++
++  @Override
++  public boolean hasPendingData() {
++    return activeSink.hasPendingData();
++  }
++
++  @Override
++  public PlaybackParameters setPlaybackParameters(PlaybackParameters playbackParameters) {
++    PlaybackParameters defaultSinkParameters = defaultSink.setPlaybackParameters(playbackParameters);
++    PlaybackParameters surroundSinkParameters =
++        surroundSink.setPlaybackParameters(playbackParameters);
++    return activeSink == surroundSink ? surroundSinkParameters : defaultSinkParameters;
++  }
++
++  @Override
++  public PlaybackParameters getPlaybackParameters() {
++    return activeSink.getPlaybackParameters();
++  }
++
++  @Override
++  public void setAudioAttributes(AudioAttributes audioAttributes) {
++    this.audioAttributes = audioAttributes;
++    defaultSink.setAudioAttributes(audioAttributes);
++    surroundSink.setAudioAttributes(audioAttributes);
++  }
++
++  @Override
++  public void setAudioSessionId(int audioSessionId) {
++    defaultSink.setAudioSessionId(audioSessionId);
++    surroundSink.setAudioSessionId(audioSessionId);
++  }
++
++  @Override
++  public void setAuxEffectInfo(AuxEffectInfo auxEffectInfo) {
++    defaultSink.setAuxEffectInfo(auxEffectInfo);
++  }
++
++  @Override
++  public void enableTunnelingV21(int tunnelingAudioSessionId) {
++    // The renderer enables tunneling before it configures the sink, so configure() routes the
++    // stream to defaultSink.
++    tunneling = true;
++    defaultSink.enableTunnelingV21(tunnelingAudioSessionId);
++  }
++
++  @Override
++  public void disableTunneling() {
++    tunneling = false;
++    defaultSink.disableTunneling();
++  }
++
++  @Override
++  public void setVolume(float volume) {
++    defaultSink.setVolume(volume);
++    surroundSink.setVolume(volume);
++  }
++
++  @Override
++  public void pause() {
++    defaultSink.pause();
++    surroundSink.pause();
++  }
++
++  @Override
++  public void flush() {
++    defaultSink.flush();
++    surroundSink.flush();
++  }
++
++  @Override
++  public void reset() {
++    defaultSink.reset();
++    surroundSink.reset();
++  }
++
++  private void activate(AudioSink sink) {
++    if (sink != activeSink) {
++      activeSink.flush();
++      activeSink = sink;
++    }
++  }
++}
+-- 
+2.55.0
+

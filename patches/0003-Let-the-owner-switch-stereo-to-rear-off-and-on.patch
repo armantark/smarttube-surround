@@ -1,0 +1,118 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: armantark <chuck67322@berkeley.edu>
+Date: Sat, 17 Oct 2026 13:55:51 -0700
+Subject: [PATCH 3/4] Let the owner switch stereo-to-rear off and on
+
+The owner needs to compare stereo-to-rear with plain stereo, and to go
+back to plain stereo without reinstalling. A "Stereo to rear speakers"
+switch, on by default, sits first in the player's playback settings,
+where a change restarts the video to apply it, and beside the audio
+delay in the player settings.
+---
+ .../controllers/HQDialogController.java       |  2 +
+ .../settings/PlayerSettingsPresenter.java     |  2 +
+ .../common/prefs/StereoToRearSetting.java     | 40 +++++++++++++++++++
+ .../res/values/stereo_to_rear_strings.xml     |  4 ++
+ 4 files changed, 48 insertions(+)
+ create mode 100644 common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/StereoToRearSetting.java
+ create mode 100644 common/src/main/res/values/stereo_to_rear_strings.xml
+
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/HQDialogController.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/HQDialogController.java
+index 80ea47ca8..71edf6a97 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/HQDialogController.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/models/playback/controllers/HQDialogController.java
+@@ -8,6 +8,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
+ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
+ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
+ import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
++import com.liskovsoft.smartyoutubetv2.common.prefs.StereoToRearSetting;
+ import com.liskovsoft.smartyoutubetv2.common.utils.AppDialogUtil;
+ 
+ import java.util.HashSet;
+@@ -46,6 +47,7 @@ public class HQDialogController extends BasePlayerController {
+     private void onHighQualityClicked() {
+         fitVideoIntoDialog();
+ 
++        addCategoryInt(StereoToRearSetting.createCategory(getContext(), () -> getPlayer().restartEngine()));
+         addQualityCategories();
+         addAudioLanguage();
+         addPresetsCategory();
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
+index 99b42b42d..34efa1fed 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/app/presenters/settings/PlayerSettingsPresenter.java
+@@ -18,6 +18,7 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
+ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
+ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
+ import com.liskovsoft.smartyoutubetv2.common.prefs.SearchData;
++import com.liskovsoft.smartyoutubetv2.common.prefs.StereoToRearSetting;
+ import com.liskovsoft.smartyoutubetv2.common.utils.AppDialogUtil;
+ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
+ import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
+@@ -66,6 +67,7 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
+         appendVideoSpeedCategory(settingsPresenter);
+         appendAudioLanguageCategory(settingsPresenter);
+         appendAudioDelayCategory(settingsPresenter);
++        settingsPresenter.appendCategory(StereoToRearSetting.createCategory(getContext(), () -> {}));
+         appendMasterVolumeCategory(settingsPresenter);
+         appendOKButtonCategory(settingsPresenter);
+         appendUIAutoHideCategory(settingsPresenter);
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/StereoToRearSetting.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/StereoToRearSetting.java
+new file mode 100644
+index 000000000..9e7bcc3c8
+--- /dev/null
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/prefs/StereoToRearSetting.java
+@@ -0,0 +1,40 @@
++package com.liskovsoft.smartyoutubetv2.common.prefs;
++
++import android.content.Context;
++import com.liskovsoft.sharedutils.helpers.Helpers;
++import com.liskovsoft.smartyoutubetv2.common.R;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionCategory;
++import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
++
++/**
++ * The "Stereo to rear speakers" player setting, on by default. It keeps its own key in the profile
++ * data, so upstream's index-based player data strings never shift under it.
++ */
++public final class StereoToRearSetting {
++    private static final String STEREO_TO_REAR_DATA = "stereo_to_rear_data";
++    private static final int CATEGORY_ID = 5100;
++
++    private StereoToRearSetting() {
++    }
++
++    public static boolean isEnabled(Context context) {
++        String data = AppPrefs.instance(context).getProfileData(STEREO_TO_REAR_DATA);
++        return Helpers.parseBoolean(Helpers.splitData(data), 0, true);
++    }
++
++    public static void setEnabled(Context context, boolean enabled) {
++        AppPrefs.instance(context).setProfileData(STEREO_TO_REAR_DATA, Helpers.mergeData(enabled));
++    }
++
++    /**
++     * A switch for the setting. The player builds its audio output with the setting, so {@code onChanged}
++     * restarts a playing video to apply a change.
++     */
++    public static OptionCategory createCategory(Context context, Runnable onChanged) {
++        return OptionCategory.from(CATEGORY_ID, OptionCategory.TYPE_SINGLE_SWITCH, null,
++                UiOptionItem.from(context.getString(R.string.stereo_to_rear_speakers), option -> {
++                    setEnabled(context, option.isSelected());
++                    onChanged.run();
++                }, isEnabled(context)));
++    }
++}
+diff --git a/common/src/main/res/values/stereo_to_rear_strings.xml b/common/src/main/res/values/stereo_to_rear_strings.xml
+new file mode 100644
+index 000000000..936baed96
+--- /dev/null
++++ b/common/src/main/res/values/stereo_to_rear_strings.xml
+@@ -0,0 +1,4 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="stereo_to_rear_speakers" translatable="false">Stereo to rear speakers</string>
++</resources>
+-- 
+2.55.0
+
