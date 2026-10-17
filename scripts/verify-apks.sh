@@ -17,7 +17,7 @@ apks=("$apk_dir"/*.apk)
 
 for apk in "${apks[@]}"; do
   report=$("$apksigner" verify --print-certs "$apk")
-  actual=$(sed -nE 's/^Signer[^:]* certificate SHA-256 digest: //p' <<< "$report" | head -n 1)
+  actual=$(sed -nE 's/^(V[0-9]+ )?Signer[^:]*:? certificate SHA-256 digest: //p' <<< "$report" | head -n 1)
   [[ $actual == "$expected" ]] || { echo "$(basename "$apk"): certificate '$actual', expected $expected" >&2; echo "$report" >&2; exit 1; }
   echo "$(basename "$apk"): signed with the project certificate"
 done
