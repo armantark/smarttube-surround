@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: armantark <chuck67322@berkeley.edu>
+Date: Sat, 17 Oct 2026 13:10:19 -0700
+Subject: [PATCH 1/2] Give the beta flavor its own identity so it installs
+ beside SmartTube beta
+
+SmartTube Surround installs next to the owner's SmartTube beta as a fallback,
+so it needs its own application ID, app name, and version name. The search
+suggestion authority and intent data follow the application ID, because two
+apps cannot share a content provider authority.
+---
+ leanbackassistant/src/stbeta/res/values/strings.xml | 2 +-
+ leanbackassistant/src/stbeta/res/xml/searchable.xml | 4 ++--
+ smarttubetv/build.gradle                            | 3 ++-
+ smarttubetv/src/stbeta/res/values/strings.xml       | 4 ++--
+ 4 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/leanbackassistant/src/stbeta/res/values/strings.xml b/leanbackassistant/src/stbeta/res/values/strings.xml
+index ae82e4a45..823115f1d 100644
+--- a/leanbackassistant/src/stbeta/res/values/strings.xml
++++ b/leanbackassistant/src/stbeta/res/values/strings.xml
+@@ -1,5 +1,5 @@
+ <resources>
+     <string name="search_label">SmartTube</string>
+     <string name="settings_description">SmartTube Videos</string>
+-    <string translatable="false" name="search_authority">org.smarttube.beta</string>
++    <string translatable="false" name="search_authority">io.github.armantark.smarttubesurround</string>
+ </resources>
+diff --git a/leanbackassistant/src/stbeta/res/xml/searchable.xml b/leanbackassistant/src/stbeta/res/xml/searchable.xml
+index ba2bae90d..c22facb01 100644
+--- a/leanbackassistant/src/stbeta/res/xml/searchable.xml
++++ b/leanbackassistant/src/stbeta/res/xml/searchable.xml
+@@ -18,9 +18,9 @@
+     android:label="@string/search_label"
+     android:icon="@drawable/lb_ic_in_app_search"
+     android:searchSettingsDescription="@string/settings_description"
+-    android:searchSuggestAuthority="org.smarttube.beta"
++    android:searchSuggestAuthority="io.github.armantark.smarttubesurround"
+     android:searchSuggestIntentAction="android.intent.action.VIEW"
+-    android:searchSuggestIntentData="content://org.smarttube.beta/video"
++    android:searchSuggestIntentData="content://io.github.armantark.smarttubesurround/video"
+     android:queryAfterZeroResults="true"
+     android:searchSuggestPath="search"
+     android:searchSuggestThreshold="0" />
+\ No newline at end of file
+diff --git a/smarttubetv/build.gradle b/smarttubetv/build.gradle
+index 93ca24c71..59fe47e2d 100644
+--- a/smarttubetv/build.gradle
++++ b/smarttubetv/build.gradle
+@@ -160,7 +160,8 @@ android {
+     // NOTE: The main goal of prefixing a flavor is to group flavors' folders together
+     productFlavors {
+         stbeta {
+-            applicationId "org.smarttube.beta"
++            applicationId "io.github.armantark.smarttubesurround"
++            versionNameSuffix "-surround"
+             targetSdkVersion project.properties.compileSdkVersion
+         }
+         ststable {
+diff --git a/smarttubetv/src/stbeta/res/values/strings.xml b/smarttubetv/src/stbeta/res/values/strings.xml
+index e007ec4c8..b5efc81ab 100644
+--- a/smarttubetv/src/stbeta/res/values/strings.xml
++++ b/smarttubetv/src/stbeta/res/values/strings.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <string translatable="false" name="app_name"><![CDATA[SmartTube beta]]></string>
+-    <string translatable="false" name="browse_title"><![CDATA[SmartTube beta]]></string>
++    <string translatable="false" name="app_name"><![CDATA[SmartTube Surround]]></string>
++    <string translatable="false" name="browse_title"><![CDATA[SmartTube Surround]]></string>
+ </resources>

@@ -1,0 +1,2 @@
+# Upstream SmartTube has CRLF files; the patches must keep their CR bytes to apply.
+*.patch -text
