@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** open
+**Status:** claimed by implementer-02
 
 - [ ] The project keystore exists at ~/.config/smarttube-surround/ with mode 600, and its passwords live beside it, never in the repository
 - [ ] One script checks out a given upstream tag with submodules, applies the patch series, and builds the signed beta release APKs
