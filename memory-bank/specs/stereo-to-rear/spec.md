@@ -48,7 +48,7 @@ the owner already uses; when a new patched build is published, the owner gets a 
 18. As the owner, I want every patched build signed with the same key, so that each update installs over the last one.
 19. As the owner, I want the signing key kept outside the repository and backed up on my Mac, so that losing GitHub does not end updates.
 20. As the owner, I want the public repository to carry SmartTube's and ExoPlayer's license notices, so that the published APKs respect their licenses.
-21. As the owner's wife, I want the official YouTube app unchanged, so that my profiles and sign-in keep working.
+21. As another member of the household, I want the official YouTube app unchanged, so that my profiles and sign-in keep working.
 22. As a future agent, I want the patch kept small and separate from upstream code, so that an upstream change rarely breaks it and a break is easy to fix.
 23. As a future agent, I want one command that checks the 5.1 output on the TV while a stereo video plays, so that I can verify a fix without the owner.
 
