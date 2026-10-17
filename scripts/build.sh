@@ -55,6 +55,15 @@ for patch in "$repo_dir"/patches/*.patch; do
   git apply --3way "$patch"
 done
 
+# The patch revision is a counter in this repository, so the version code cannot live in a patch:
+# it would conflict with every upstream version bump.
+revision=$(<"$repo_dir/patch-revision")
+[[ $revision =~ ^[0-9]+$ ]] || { echo "patch-revision must hold a number" >&2; exit 1; }
+upstream_code=$(sed -nE 's/^[[:space:]]*versionCode ([0-9]+)[[:space:]]*$/\1/p' smarttubetv/build.gradle)
+[[ $upstream_code =~ ^[0-9]+$ ]] || { echo "expected one versionCode line in smarttubetv/build.gradle" >&2; exit 1; }
+sed -E -i.bak "s/^([[:space:]]*versionCode )[0-9]+/\1$((upstream_code * 100 + revision))/" smarttubetv/build.gradle
+rm smarttubetv/build.gradle.bak
+
 # Upstream's Firebase config has no client for this application ID, so its Google Services
 # plugin would fail the build; without it, crashes of the patched build also stay out of
 # upstream's Firebase project. Removed here rather than in a patch, because a deletion patch
