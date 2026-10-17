@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
-      BUILD_DIR: ${{ runner.temp }}/upstream
-      KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+      BUILD_DIR: /tmp/upstream
+      KEYSTORE_FILE: /tmp/release.jks
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
