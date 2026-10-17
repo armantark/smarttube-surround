@@ -145,6 +145,6 @@ jobs:
           failed=$(jq -r 'to_entries | map(select(.value.outcome == "failure") | .key | gsub("_"; " ")) | join(", ")' <<< "$STEPS")
           curl --silent --show-error --fail --retry 3 --retry-all-errors --retry-delay 5 \
             --connect-timeout 10 --max-time 30 --output /dev/null \
-            --header "Title: SmartTube failed: $failed" --header 'Priority: 5' \
+            --header "Title: SmartTube failed: $failed" --header 'Priority: 4' \
             --header "Click: $RUN_URL" \
             --data-binary "Upstream $UPSTREAM_TAG failed at $failed. $RUN_URL" "https://ntfy.sh/$NTFY_TOPIC"

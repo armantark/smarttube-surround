@@ -24,20 +24,30 @@ for abi in armeabi-v7a arm64-v8a x86 universal; do
   cp "$apk_dir"/SmartTube_beta_*_"$abi".apk "$out_dir/SmartTube_Surround_$abi.apk"
 done
 
+# Keep the history from the currently published update channel. Only a missing manifest starts
+# an empty history; network and server failures must not erase previous versions.
+previous_manifest=$(mktemp)
+trap 'rm -f "$previous_manifest"' EXIT
+status=$(curl --location --silent --show-error --retry 3 --retry-all-errors --retry-delay 5 \
+  --connect-timeout 10 --max-time 60 --output "$previous_manifest" --write-out '%{http_code}' \
+  "https://github.com/$repository/releases/latest/download/smarttube_surround.json")
+case $status in
+  200) ;;
+  404) printf '{}\n' > "$previous_manifest" ;;
+  *) echo "could not download the latest manifest: HTTP $status" >&2; exit 1 ;;
+esac
+
 # The TV's userspace is 32-bit, so armeabi-v7a is the default list, as in upstream's manifest.
 # The universal APK is for manual installs and has no place in the update channel.
-jq -n \
+jq \
   --arg url "$download_url" \
-  --arg version "$tag-surround" \
+  --arg version "$tag-surround-r$revision" \
   --argjson code "$version_code" \
   --arg changelog "Upstream SmartTube $tag with patch revision $revision" \
-  '{
-    package: {
+  '.package = {
       downloadUrlList: [$url + "/SmartTube_Surround_armeabi-v7a.apk"],
       "downloadUrlList_arm64-v8a": [$url + "/SmartTube_Surround_arm64-v8a.apk"],
       downloadUrlList_x86: [$url + "/SmartTube_Surround_x86.apk"]
-    },
-    ($version): {versionCode: $code, changelog: [$changelog]}
-  }' > "$out_dir/smarttube_surround.json"
+    } | .[$version] = {versionCode: $code, changelog: [$changelog]}' "$previous_manifest" > "$out_dir/smarttube_surround.json"
 
 echo "staged $release, version code $version_code, in $out_dir"

@@ -1,0 +1,3 @@
+PASS HTTP 200 preserves two historical entries, adds r3, updates ABI URLs
+PASS HTTP 404 starts empty and adds r3
+PASS HTTP 503 refuses to replace history: could not download the latest manifest: HTTP 503

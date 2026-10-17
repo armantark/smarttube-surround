@@ -12,21 +12,23 @@ passthrough output. Multichannel and compressed audio, tunneled
 playback, and outputs that cannot take AAC-LC 5.1 keep upstream's
 audio sink, and so does stereo when the AAC output does not open.
 ---
- .../CustomOverridesRenderersFactory.java      |  11 +-
- .../audio/AacSurroundAudioSink.java           | 792 ++++++++++++++++++
- .../audio/StereoToRearAudioSink.java          | 226 +++++
- 3 files changed, 1027 insertions(+), 2 deletions(-)
- create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
- create mode 100644 exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
+ .../renderer/CustomOverridesRenderersFactory.java  |  13 +-
+ .../renderer/DelayMediaCodecAudioRenderer.java     |   4 +
+ .../exoplayer2/DefaultRenderersFactory.java        |   8 +-
+ .../exoplayer2/audio/AacSurroundAudioSink.java     | 801 +++++++++++++++++++++
+ .../exoplayer2/audio/StereoToRearAudioSink.java    | 231 ++++++
+ 5 files changed, 1054 insertions(+), 3 deletions(-)
 
 diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java
-index a921b64cf..a4c426847 100644
+index a921b64cf..2a4a21f66 100644
 --- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java
 +++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/CustomOverridesRenderersFactory.java
-@@ -8,6 +8,7 @@ import com.google.android.exoplayer2.audio.AudioCapabilities;
+@@ -7,7 +7,8 @@ import com.google.android.exoplayer2.Renderer;
+ import com.google.android.exoplayer2.audio.AudioCapabilities;
  import com.google.android.exoplayer2.audio.AudioProcessor;
  import com.google.android.exoplayer2.audio.AudioRendererEventListener;
- import com.google.android.exoplayer2.audio.DefaultAudioSink;
+-import com.google.android.exoplayer2.audio.DefaultAudioSink;
++import com.google.android.exoplayer2.audio.AudioSink;
 +import com.google.android.exoplayer2.audio.StereoToRearAudioSink;
  import com.google.android.exoplayer2.drm.DrmSessionManager;
  import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
@@ -39,35 +41,90 @@ index a921b64cf..a4c426847 100644
  
  import java.util.ArrayList;
  
-@@ -126,7 +128,10 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase
-         super.buildAudioRenderers(context, extensionRendererMode, mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys,
-                 enableDecoderFallback, audioProcessors, eventHandler, eventListener, out);
+@@ -117,6 +119,13 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase
+     //    replaceVideoRenderer(out, videoRenderer);
+     //}
  
--        if ((mPlayerData.getAudioDelayMs() == 0 || !mPlayerData.isAudioDelayEnabled()) && !mPlayerTweaksData.isAudioSyncFixEnabled()) {
-+        boolean isStereoToRearEnabled = StereoToRearSetting.isEnabled(context);
++    @Override
++    protected AudioSink buildAudioSink(Context context, AudioProcessor[] audioProcessors) {
++        return StereoToRearSetting.isEnabled(context)
++                ? new StereoToRearAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors)
++                : super.buildAudioSink(context, audioProcessors);
++    }
 +
-+        if ((mPlayerData.getAudioDelayMs() == 0 || !mPlayerData.isAudioDelayEnabled()) && !mPlayerTweaksData.isAudioSyncFixEnabled()
-+                && !isStereoToRearEnabled) {
-             // Improve performance a bit by eliminating calculations presented in custom renderer.
- 
-             return;
-@@ -134,7 +139,9 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase
+     // 2.10, 2.11
+     @Override
+     protected void buildAudioRenderers(Context context, @ExtensionRendererMode int extensionRendererMode, MediaCodecSelector mediaCodecSelector,
+@@ -134,7 +143,7 @@ public class CustomOverridesRenderersFactory extends CustomRenderersFactoryBase
  
          DelayMediaCodecAudioRenderer audioRenderer =
                  new DelayMediaCodecAudioRenderer(context, mediaCodecSelector, drmSessionManager, playClearSamplesWithoutKeys, enableDecoderFallback,
 -                        eventHandler, eventListener, new DefaultAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors));
-+                        eventHandler, eventListener, isStereoToRearEnabled
-+                                ? new StereoToRearAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors)
-+                                : new DefaultAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors));
++                        eventHandler, eventListener, buildAudioSink(context, audioProcessors));
  
          audioRenderer.setAudioDelayMs(mPlayerData.isAudioDelayEnabled() ? mPlayerData.getAudioDelayMs() : 0);
          audioRenderer.enableAudioSyncFix(mPlayerTweaksData.isAudioSyncFixEnabled());
+diff --git a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DelayMediaCodecAudioRenderer.java b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DelayMediaCodecAudioRenderer.java
+index d141b2be8..5e5e616f7 100644
+--- a/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DelayMediaCodecAudioRenderer.java
++++ b/common/src/main/java/com/liskovsoft/smartyoutubetv2/common/exoplayer/versions/renderer/DelayMediaCodecAudioRenderer.java
+@@ -8,6 +8,7 @@ import com.google.android.exoplayer2.ExoPlaybackException;
+ import com.google.android.exoplayer2.Format;
+ import com.google.android.exoplayer2.audio.AudioRendererEventListener;
+ import com.google.android.exoplayer2.audio.AudioSink;
++import com.google.android.exoplayer2.audio.StereoToRearAudioSink;
+ import com.google.android.exoplayer2.audio.MediaCodecAudioRenderer;
+ import com.google.android.exoplayer2.drm.DrmSessionManager;
+ import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
+@@ -70,6 +71,9 @@ public class DelayMediaCodecAudioRenderer extends MediaCodecAudioRenderer {
+         // AudioTrack.getPlaybackHeadPosition instead, which might help if the first one drifts but the second one doesn't.
+         if (mIsAudioSyncFixEnabled && mIsAudioSyncFixChanged) {
+             Object audioSink = Helpers.getField(this, "audioSink");
++            if (audioSink instanceof StereoToRearAudioSink) {
++                audioSink = ((StereoToRearAudioSink) audioSink).getActiveSink();
++            }
+             if (audioSink != null) {
+                 Object audioTrackPositionTracker = Helpers.getField(audioSink, "audioTrackPositionTracker");
+                 if (audioTrackPositionTracker != null) {
+diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/DefaultRenderersFactory.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/DefaultRenderersFactory.java
+index 6c42b56ca..d9a85195f 100644
+--- a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/DefaultRenderersFactory.java
++++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/DefaultRenderersFactory.java
+@@ -25,6 +25,7 @@ import com.google.android.exoplayer2.audio.AudioCapabilities;
+ import com.google.android.exoplayer2.audio.AudioProcessor;
+ import com.google.android.exoplayer2.audio.AudioRendererEventListener;
+ import com.google.android.exoplayer2.audio.DefaultAudioSink;
++import com.google.android.exoplayer2.audio.AudioSink;
+ import com.google.android.exoplayer2.audio.MediaCodecAudioRenderer;
+ import com.google.android.exoplayer2.drm.DrmSessionManager;
+ import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
+@@ -367,6 +368,11 @@ public class DefaultRenderersFactory implements RenderersFactory {
+     }
+   }
+ 
++  /** Builds the sink shared by the default and custom audio renderers. */
++  protected AudioSink buildAudioSink(Context context, AudioProcessor[] audioProcessors) {
++    return new DefaultAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors);
++  }
++
+   /**
+    * Builds audio renderers for use by the player.
+    *
+@@ -407,7 +413,7 @@ public class DefaultRenderersFactory implements RenderersFactory {
+             enableDecoderFallback,
+             eventHandler,
+             eventListener,
+-            new DefaultAudioSink(AudioCapabilities.getCapabilities(context), audioProcessors)));
++            buildAudioSink(context, audioProcessors)));
+ 
+     if (extensionRendererMode == EXTENSION_RENDERER_MODE_OFF) {
+       return;
 diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
 new file mode 100644
-index 000000000..90806316d
+index 000000000..a0e1f5ca4
 --- /dev/null
 +++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
-@@ -0,0 +1,792 @@
+@@ -0,0 +1,801 @@
 +package com.google.android.exoplayer2.audio;
 +
 +import android.annotation.TargetApi;
@@ -155,6 +212,7 @@ index 000000000..90806316d
 +  @Nullable private ByteBuffer outputBuffer;
 +  private int drainingAudioProcessorIndex;
 +  private boolean handledEndOfStream;
++  private boolean audioProcessorsDrained;
 +  private long submittedFrames;
 +  /** Stereo frames queued into the encoder: the playout timeline. */
 +  private long encodedFrames;
@@ -319,8 +377,15 @@ index 000000000..90806316d
 +
 +  @Override
 +  public void playToEndOfStream() throws WriteException {
-+    if (handledEndOfStream || !isInitialized() || !drainAudioProcessorsToEndOfStream()) {
++    if (handledEndOfStream || !isInitialized()) {
 +      return;
++    }
++    if (!audioProcessorsDrained) {
++      if (!drainAudioProcessorsToEndOfStream()) {
++        return;
++      }
++      // Repeating queueEndOfStream can make silence skipping emit its trailing buffer again.
++      audioProcessorsDrained = true;
 +    }
 +    // Write first: the encoder frees no input buffer for the end of stream while its output waits.
 +    writeEncodedOutput();
@@ -446,6 +511,7 @@ index 000000000..90806316d
 +    encoderInputEnded = false;
 +    encoderOutputEnded = false;
 +    handledEndOfStream = false;
++    audioProcessorsDrained = false;
 +    drainingAudioProcessorIndex = C.INDEX_UNSET;
 +    startMediaTimeState = START_NOT_SET;
 +    releaseOutput();
@@ -862,10 +928,10 @@ index 000000000..90806316d
 +}
 diff --git a/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
 new file mode 100644
-index 000000000..c31804cdb
+index 000000000..7059e891f
 --- /dev/null
 +++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/StereoToRearAudioSink.java
-@@ -0,0 +1,226 @@
+@@ -0,0 +1,231 @@
 +package com.google.android.exoplayer2.audio;
 +
 +import androidx.annotation.Nullable;
@@ -913,6 +979,11 @@ index 000000000..c31804cdb
 +    surroundSink = new AacSurroundAudioSink(audioProcessors);
 +    activeSink = defaultSink;
 +    audioAttributes = AudioAttributes.DEFAULT;
++  }
++
++  /** Returns the sink whose track supplies the playback clock, including the upstream path. */
++  public AudioSink getActiveSink() {
++    return activeSink;
 +  }
 +
 +  @Override
@@ -1094,4 +1165,3 @@ index 000000000..c31804cdb
 +}
 -- 
 2.55.0
-

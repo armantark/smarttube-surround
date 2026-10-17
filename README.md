@@ -56,7 +56,7 @@ that number in the same commit as any change to `patches/`, so the TV sees the f
 
 The workflow reads the keystore and its passwords from the Actions secrets `KEYSTORE_BASE64`,
 `KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. The `NTFY_TOPIC` secret selects the owner's
-existing ntfy.sh topic. A failed step sends a priority 5 alert with the step name, upstream tag,
+existing ntfy.sh topic. A failed step sends a priority 4 alert with the step name, upstream tag,
 and run link; publishing sends a priority 2 message with the release name and link. Notification
 requests retry network failures and never print the topic. Patch application and compilation run
 as separate steps; the local build command still runs both.

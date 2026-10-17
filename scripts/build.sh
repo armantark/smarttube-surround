@@ -63,7 +63,8 @@ build_dir=$PWD
 # it would conflict with every upstream version bump.
 revision=$(<"$repo_dir/patch-revision")
 [[ $revision =~ ^[0-9]+$ ]] || { echo "patch-revision must hold a number" >&2; exit 1; }
-upstream_code=$(sed -nE 's/^[[:space:]]*versionCode ([0-9]+)[[:space:]]*$/\1/p' smarttubetv/build.gradle)
+upstream_code=$(git show "refs/tags/$tag:smarttubetv/build.gradle" |
+  sed -nE 's/^[[:space:]]*versionCode ([0-9]+)[[:space:]]*$/\1/p')
 [[ $upstream_code =~ ^[0-9]+$ ]] || { echo "expected one versionCode line in smarttubetv/build.gradle" >&2; exit 1; }
 sed -E -i.bak "s/^([[:space:]]*versionCode )[0-9]+/\1$((upstream_code * 100 + revision))/" smarttubetv/build.gradle
 rm smarttubetv/build.gradle.bak
@@ -81,6 +82,6 @@ trap 'rm -f "$build_dir/keystore.properties"' EXIT
     "$keystore_file" "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
 )
 
-bash gradlew --no-daemon assembleStbetaRelease
+"$repo_dir/scripts/retry.sh" bash gradlew --no-daemon assembleStbetaRelease
 
 ls "$build_dir"/smarttubetv/build/outputs/apk/stbeta/release/*.apk
