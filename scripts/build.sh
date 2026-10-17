@@ -57,6 +57,7 @@ export JAVA_HOME=${JAVA_HOME:-$(/usr/libexec/java_home -v 17)}
 export ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 
 cd "$build_dir"
+build_dir=$PWD
 
 # The patch revision is a counter in this repository, so the version code cannot live in a patch:
 # it would conflict with every upstream version bump.
