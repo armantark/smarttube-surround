@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the signed SmartTube Surround beta APKs from one upstream SmartTube tag.
 #
-# Usage: scripts/build.sh <upstream-tag>
+# Usage: scripts/build.sh <upstream-tag> [--prepare-only|--build-only]
+# The workflow separates patch application from compilation; omit the flag to do both.
 #
 # Environment, with defaults for the owner's Mac (GitHub Actions sets its own):
 #   BUILD_DIR          upstream checkout, reused between runs (~/.cache/smarttube-surround/upstream)
@@ -13,10 +14,35 @@
 set -euo pipefail
 
 tag=${1:?usage: build.sh <upstream-tag>}
+phase=${2:-all}
+case $phase in
+  all|--prepare-only|--build-only) ;;
+  *) echo "unknown build phase: $phase" >&2; exit 1 ;;
+esac
 repo_dir=$(cd "$(dirname "$0")/.." && pwd)
 config_dir=$HOME/.config/smarttube-surround
 build_dir=${BUILD_DIR:-$HOME/.cache/smarttube-surround/upstream}
 keystore_file=${KEYSTORE_FILE:-$config_dir/release.jks}
+
+if [[ $phase != --build-only ]]; then
+  if [[ ! -d $build_dir/.git ]]; then
+    git init --quiet "$build_dir"
+    git -C "$build_dir" remote add origin https://github.com/yuliskov/SmartTube
+  fi
+  cd "$build_dir"
+  "$repo_dir/scripts/retry.sh" git fetch --quiet --force --tags origin
+  git checkout --quiet --force --detach "refs/tags/$tag"
+  git clean --quiet -ffdx
+  "$repo_dir/scripts/retry.sh" git submodule update --quiet --init --recursive --force
+  git submodule foreach --quiet --recursive git clean --quiet -ffdx
+
+  for patch in "$repo_dir"/patches/*.patch; do
+    echo "applying $(basename "$patch")"
+    git apply --3way "$patch"
+  done
+
+fi
+[[ $phase != --prepare-only ]] || exit 0
 
 if [[ -z ${KEYSTORE_PASSWORD:-} ]]; then
   # shellcheck source=/dev/null
@@ -29,31 +55,7 @@ keystore_file=$(cd "$(dirname "$keystore_file")" && pwd)/$(basename "$keystore_f
 export JAVA_HOME=${JAVA_HOME:-$(/usr/libexec/java_home -v 17)}
 export ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 
-retry() {
-  local attempt
-  for attempt in 1 2 3; do
-    "$@" && return
-    echo "attempt $attempt of 3 failed: $*" >&2
-    sleep $((attempt * 10))
-  done
-  return 1
-}
-
-if [[ ! -d $build_dir/.git ]]; then
-  git init --quiet "$build_dir"
-  git -C "$build_dir" remote add origin https://github.com/yuliskov/SmartTube
-fi
 cd "$build_dir"
-retry git fetch --quiet --force --tags origin
-git checkout --quiet --force --detach "refs/tags/$tag"
-git clean --quiet -ffdx
-retry git submodule update --quiet --init --recursive --force
-git submodule foreach --quiet --recursive git clean --quiet -ffdx
-
-for patch in "$repo_dir"/patches/*.patch; do
-  echo "applying $(basename "$patch")"
-  git apply --3way "$patch"
-done
 
 # The patch revision is a counter in this repository, so the version code cannot live in a patch:
 # it would conflict with every upstream version bump.

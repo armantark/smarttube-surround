@@ -28,8 +28,10 @@ update the installed app, so keep a backup of both files.
 
 ## Releases
 
-The "Build and publish" workflow runs on manual dispatch with an optional upstream beta tag (the
-newest upstream beta release when empty). It builds with JDK 17, verifies every APK against the
+The "Build and publish" workflow runs daily at 08:23 UTC and on manual dispatch with an optional
+upstream beta tag (the newest upstream beta release when empty). If the release already exists at
+the current patch revision, it succeeds without building, publishing, or notifying. Otherwise,
+it builds with JDK 17, verifies every APK against the
 project certificate (`certificate-sha256`), and publishes a release named
 `<upstream tag>-r<patch revision>` as the latest release. The APKs have stable names
 (`SmartTube_Surround_<abi>.apk`) and the update manifest is `smarttube_surround.json`, so the patched
@@ -40,7 +42,11 @@ The version code is upstream's version code times 100 plus the number in `patch-
 that number in the same commit as any change to `patches/`, so the TV sees the fix as an update.
 
 The workflow reads the keystore and its passwords from the Actions secrets `KEYSTORE_BASE64`,
-`KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`.
+`KEYSTORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. The `NTFY_TOPIC` secret selects the owner's
+existing ntfy.sh topic. A failed step sends a priority 5 alert with the step name, upstream tag,
+and run link; publishing sends a priority 2 message with the release name and link. Notification
+requests retry network failures and never print the topic. Patch application and compilation run
+as separate steps; the local build command still runs both.
 
 ## Licenses
 
