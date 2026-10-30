@@ -4,7 +4,7 @@ Owner report, 2026-10-30 15:30 PDT: SmartTube Surround audio rises in volume whe
 
 ## Low volume
 
-`upmix` in `patches/0004-Play-stereo-from-the-rear-speakers-as-well-as-the-fr.patch` writes silence to the centre and LFE channels. In stereo PCM the HT-A3000 makes its own centre channel, and its Voice setting raises that centre. With a silent centre, voices play only from the front left and right, and Voice has nothing to raise. Proposed fix: centre = (left + right) / 2, computed in `int` so it cannot overflow. Not built or measured.
+`upmix` in `patches/0004-Play-stereo-from-the-rear-speakers-as-well-as-the-fr.patch` writes silence to the centre and LFE channels. In stereo PCM the HT-A3000 makes its own centre channel, and its Voice setting raises that centre. With a silent centre, voices play only from the front left and right, and Voice has nothing to raise. Fix in patch revision 4: centre = (left + right) / 2, computed in `int` so it cannot overflow. `scripts/check-surround.sh on` passed on the TV with 32.68-surround-r4 (versionCode 245804) at 15:50 PDT; the owner has not yet judged the loudness by ear.
 
 ## Volume rise
 

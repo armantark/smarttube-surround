@@ -124,7 +124,7 @@ new file mode 100644
 index 000000000..a0e1f5ca4
 --- /dev/null
 +++ b/exoplayer-amzn-2.10.6/library/core/src/main/java/com/google/android/exoplayer2/audio/AacSurroundAudioSink.java
-@@ -0,0 +1,801 @@
+@@ -0,0 +1,802 @@
 +package com.google.android.exoplayer2.audio;
 +
 +import android.annotation.TargetApi;
@@ -152,7 +152,8 @@ index 000000000..a0e1f5ca4
 +
 +/**
 + * Plays 16-bit stereo PCM as AAC-LC 5.1 through a compressed passthrough {@link AudioTrack}, with
-+ * the left and right channels copied to the rear pair and silent centre and LFE channels.
++ * the left and right channels copied to the rear pair, their average in the centre, and a silent
++ * LFE channel. The soundbar's Voice setting raises only the centre, so voices need it.
 + *
 + * <p>The TV's own encoder, {@code c2.android.aac.encoder}, encodes the 5.1 PCM, and the stream
 + * goes to the track in ADTS framing, because the TV plays nothing from raw access units. Speed,
@@ -746,7 +747,7 @@ index 000000000..a0e1f5ca4
 +
 +  /**
 +   * Writes {@code frames} stereo frames to the encoder input as 5.1: front and rear left get the
-+   * left channel, front and rear right the right channel, centre and LFE silence.
++   * left channel, front and rear right the right channel, centre their average, and LFE silence.
 +   */
 +  private void upmix(ByteBuffer stereo, ByteBuffer encoderInput, int frames) {
 +    ShortBuffer samples = stereo.slice().order(ByteOrder.nativeOrder()).asShortBuffer();
@@ -757,7 +758,7 @@ index 000000000..a0e1f5ca4
 +      // The encoder reads AAC channel order (centre, left, right, rear left, rear right, LFE),
 +      // not Android's; in Android's order the left channel came out of the centre speaker.
 +      encoderInput
-+          .putShort((short) 0)
++          .putShort((short) ((left + right) / 2))
 +          .putShort(left)
 +          .putShort(right)
 +          .putShort(left)
